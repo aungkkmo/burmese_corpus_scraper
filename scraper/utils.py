@@ -6,9 +6,12 @@ Utility functions for the Burmese corpus scraper
 import hashlib
 import re
 import logging
-from urllib.parse import urljoin, urlparse
-from datetime import datetime
+import os
 import json
+from pathlib import Path
+from datetime import datetime
+from typing import Set, Dict, Any, Optional
+from urllib.parse import urljoin, urlparse
 
 def generate_id(url: str) -> str:
     """Generate a unique ID for the article based on URL"""
@@ -134,3 +137,179 @@ def normalize_slug(slug: str) -> str:
         return "scraper_output"
     
     return normalized
+
+def load_sites_config() -> Optional[Dict[str, Any]]:
+    """
+    Load multi-site configuration from sites.yaml
+    Returns None if no sites.yaml file exists
+    """
+    sites_file = Path('sites.yaml')
+    if not sites_file.exists():
+        return None
+    
+    try:
+        import yaml
+        with open(sites_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        return config
+    except ImportError:
+        print("Warning: PyYAML not installed. Install with: pip install pyyaml")
+        return None
+    except Exception as e:
+        print(f"Error loading sites.yaml: {e}")
+        return None
+
+def convert_pagination_type(pagination_type) -> str:
+    """
+    Convert numeric pagination type to string
+    0 = none, 1 = queryparam, 2 = click, 3 = scroll
+    """
+    if isinstance(pagination_type, int):
+        pagination_map = {
+            0: 'none',
+            1: 'queryparam', 
+            2: 'click',
+            3: 'scroll'
+        }
+        return pagination_map.get(pagination_type, 'none')
+    elif isinstance(pagination_type, str):
+        # Already a string, return as-is for backwards compatibility
+        return pagination_type
+    else:
+        return 'none'
+
+def get_site_config(sites_config: Dict[str, Any], site_key: str, category: str = None) -> Optional[Dict[str, Any]]:
+    """
+    Get configuration for a specific site, merging with defaults
+    """
+    if not sites_config or 'sites' not in sites_config:
+        return None
+    
+    if site_key not in sites_config['sites']:
+        return None
+    
+    # Start with defaults
+    config = sites_config.get('defaults', {}).copy()
+    
+    # Override with site-specific settings
+    site_config = sites_config['sites'][site_key].copy()
+    config.update(site_config)
+    
+    # Handle multiple archive URLs
+    if 'archive_urls' in config:
+        archive_urls = config['archive_urls']
+        
+        if category and category in archive_urls:
+            # Use specific category URL
+            config['archive_url'] = archive_urls[category]
+            config['category'] = category
+        else:
+            # Use first URL as default or show available categories
+            if isinstance(archive_urls, dict):
+                if not category:
+                    # Return config with available categories for selection
+                    config['available_categories'] = list(archive_urls.keys())
+                    config['archive_url'] = list(archive_urls.values())[0]  # Default to first
+                    config['category'] = list(archive_urls.keys())[0]
+                else:
+                    # Category not found
+                    return None
+        
+        # Remove archive_urls from final config to avoid confusion
+        del config['archive_urls']
+    
+    # Convert numeric pagination type to string
+    if 'pagination_type' in config:
+        config['pagination_type'] = convert_pagination_type(config['pagination_type'])
+    
+    # Add the site key as slug if not specified
+    if 'slug' not in config:
+        base_slug = site_key
+        if category:
+            base_slug = f"{site_key}_{category}"
+        config['slug'] = base_slug
+    
+    return config
+
+def get_site_categories(sites_config: Dict[str, Any], site_key: str) -> Optional[Dict[str, str]]:
+    """
+    Get available categories for a site
+    """
+    if not sites_config or 'sites' not in sites_config:
+        return None
+    
+    if site_key not in sites_config['sites']:
+        return None
+    
+    site_config = sites_config['sites'][site_key]
+    
+    if 'archive_urls' in site_config:
+        return site_config['archive_urls']
+    elif 'archive_url' in site_config:
+        # Single URL site
+        return {'main': site_config['archive_url']}
+    
+    return None
+
+def load_env_config() -> Optional[Dict[str, Any]]:
+    """
+    Load scraper configuration from .env file
+    Returns None if no .env file or if required fields are missing
+    """
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        return None
+    
+    # Check if .env file exists
+    if not Path('.env').exists():
+        return None
+    
+    # Required fields
+    required_fields = [
+        'SCRAPER_SLUG',
+        'SCRAPER_ARCHIVE_URL', 
+        'SCRAPER_ARCHIVE_SELECTOR',
+        'SCRAPER_CONTENT_SELECTOR'
+    ]
+    
+    # Check if all required fields are present
+    config = {}
+    for field in required_fields:
+        value = os.getenv(field)
+        if not value:
+            return None  # Missing required field
+        config[field.lower().replace('scraper_', '')] = value
+    
+    # Optional fields with defaults
+    optional_fields = {
+        'SCRAPER_PAGINATION_TYPE': 'none',
+        'SCRAPER_PAGINATION_PARAM': None,
+        'SCRAPER_THUMBNAIL_SELECTOR': 'img',
+        'SCRAPER_DELAY': '1.0',
+        'SCRAPER_TIMEOUT': '30',
+        'SCRAPER_MAX_PAGES': None,
+        'SCRAPER_USE_PROXY': 'false',
+        'SCRAPER_FORCE_ENGINE': None,
+        'SCRAPER_LOG_LEVEL': 'INFO',
+        'SCRAPER_OUTPUT_FORMAT': 'ndjson',
+        'SCRAPER_RESUME': 'false'
+    }
+    
+    for field, default in optional_fields.items():
+        value = os.getenv(field, default)
+        key = field.lower().replace('scraper_', '')
+        
+        # Convert string values to appropriate types
+        if key in ['delay', 'timeout']:
+            config[key] = float(value) if value else None
+        elif key in ['max_pages']:
+            config[key] = int(value) if value and value.isdigit() else None
+        elif key in ['use_proxy', 'resume']:
+            config[key] = value.lower() in ('true', '1', 'yes', 'on')
+        else:
+            config[key] = value if value else None
+    
+    return config
+

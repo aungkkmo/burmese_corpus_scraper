@@ -20,7 +20,8 @@ from utility.header_rotation import HeaderRotator
 # Import scraper modules
 from .utils import (
     is_valid_url, setup_logging, load_existing_ids, 
-    validate_selector_format, generate_id, normalize_slug
+    validate_selector_format, generate_id, normalize_slug,
+    load_env_config, load_sites_config, get_site_config, get_site_categories
 )
 from .crawler import WebCrawler
 from .extractor import ContentExtractor
@@ -67,7 +68,7 @@ class BurmeseCorpusScraper:
                thumbnail_selector: str = None, output_file: str = 'output.jsonl',
                format_type: str = 'ndjson', force_engine: str = None,
                resume: bool = False, max_pages: int = None, urls_file: str = None,
-               skip_archive: bool = False) -> Dict[str, Any]:
+               skip_archive: bool = False, slug: str = None) -> Dict[str, Any]:
         """
         Main scraping method
         
@@ -258,7 +259,7 @@ class BurmeseCorpusScraper:
             # Generate URLs with page parameters
             page = 2
             while True:
-                if max_pages and len(urls) >= max_pages:
+                if max_pages and max_pages > 0 and len(urls) >= max_pages:
                     break
                 
                 # Replace {n} with page number
@@ -480,7 +481,7 @@ class BurmeseCorpusScraper:
 @click.option('--timeout', default=30, type=int, help='Request timeout (seconds)')
 @click.option('--ignore-robots', is_flag=True, help='Ignore robots.txt')
 @click.option('--resume', is_flag=True, help='Resume from existing output file')
-@click.option('--max-pages', type=int, help='Maximum pages to scrape')
+@click.option('--max-pages', type=int, help='Maximum pages to scrape (0 or None = unlimited)')
 @click.option('--log', help='Log file path (will be overridden by slug if not provided)')
 @click.option('--log-level', default='INFO', 
               type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR']),
@@ -488,24 +489,207 @@ class BurmeseCorpusScraper:
 @click.option('--use-proxy', is_flag=True, help='Use proxy rotation')
 @click.option('--test-proxies', is_flag=True, help='Test proxies before use')
 @click.option('--skip-archive', is_flag=True, help='Skip archive scraping, only scrape from existing URLs file')
+@click.option('--site', help='Site key from sites.yaml to use (e.g., voa_burmese, bbc_burmese)')
+@click.option('--category', help='Category within the site (e.g., myanmar, world, politics)')
 def main(output, format_type, force_engine, delay, timeout, ignore_robots,
-         resume, max_pages, log, log_level, use_proxy, test_proxies, skip_archive):
+         resume, max_pages, log, log_level, use_proxy, test_proxies, skip_archive, site, category):
     """Burmese Corpus Scraper CLI"""
     
     logger = None  # Will be set up after getting slug
     
     print("=== Burmese Corpus Scraper ===")
     
-    # Get user input
+    # Try to load multi-site configuration first
+    sites_config = load_sites_config()
+    if sites_config and 'sites' in sites_config:
+        print("🌐 Found sites.yaml configuration file")
+        
+        # Use CLI site argument if provided
+        if site:
+            site_choice = site
+            if site_choice not in sites_config['sites']:
+                print(f"❌ Site '{site_choice}' not found in sites.yaml")
+                print("Available sites:")
+                for site_key, site_info in sites_config['sites'].items():
+                    name = site_info.get('name', site_key)
+                    print(f"   {site_key}: {name}")
+                sys.exit(1)
+            
+            # Check if category is specified and valid
+            if category:
+                categories = get_site_categories(sites_config, site_choice)
+                if categories and category not in categories:
+                    print(f"❌ Category '{category}' not found for site '{site_choice}'")
+                    print("Available categories:")
+                    for cat_key, cat_url in categories.items():
+                        print(f"   {cat_key}: {cat_url}")
+                    sys.exit(1)
+        else:
+            # Interactive site selection
+            print("Available sites:")
+            for site_key, site_info in sites_config['sites'].items():
+                name = site_info.get('name', site_key)
+                desc = site_info.get('description', '')
+                print(f"   {site_key}: {name}" + (f" - {desc}" if desc else ""))
+            
+            site_choice = input("\nEnter site key to use (or press Enter to skip): ").strip()
+        
+        if site_choice and site_choice in sites_config['sites']:
+            # Use selected site configuration
+            site_config = get_site_config(sites_config, site_choice, category)
+            if site_config:
+                slug = site_config['slug']
+                archive_url = site_config['archive_url']
+                archive_selector = site_config['archive_selector']
+                content_selector = site_config['content_selector']
+                pagination_type = site_config.get('pagination_type', 'none')
+                pagination_param = site_config.get('pagination_param')
+                thumbnail_selector = site_config.get('thumbnail_selector', 'img')
+                
+                # Override CLI arguments with site config if not provided
+                if not output:
+                    output_extension = 'jsonl' if site_config.get('output_format', 'ndjson') == 'ndjson' else 'json'
+                    output = f"data/raw/{slug}.{output_extension}"
+                
+                if not log:
+                    log = f"logs/{slug}.log"
+                
+                # Apply site-specific settings
+                if not max_pages and site_config.get('max_pages'):
+                    max_pages = site_config['max_pages']
+                
+                if not use_proxy and site_config.get('use_proxy'):
+                    use_proxy = site_config['use_proxy']
+                
+                if not force_engine and site_config.get('force_engine'):
+                    force_engine = site_config['force_engine']
+                
+                if not resume and site_config.get('resume'):
+                    resume = site_config['resume']
+                
+                # Update delay and timeout from site config if not provided via CLI
+                if delay == 1.0 and site_config.get('delay'):  # Default delay
+                    delay = site_config['delay']
+                
+                if timeout == 30 and site_config.get('timeout'):  # Default timeout
+                    timeout = site_config['timeout']
+                
+                print(f"✅ Using sites.yaml configuration for '{site_config.get('name', site_choice)}'")
+                env_mode = True
+            else:
+                print(f"❌ Error loading configuration for site '{site_choice}'")
+                env_mode = False
+        else:
+            if site:
+                # Site was specified but not found, already handled above
+                env_mode = False
+            else:
+                env_mode = False
+    else:
+        env_mode = False
+    
+    # Fallback to .env file if no sites.yaml or site not selected
+    if not env_mode:
+        env_config = load_env_config()
+        if env_config:
+            print("📄 Found .env configuration file")
+            print(f"   Slug: {env_config['slug']}")
+            print(f"   URL: {env_config['archive_url']}")
+            
+            use_env = input("Use .env configuration? [Y/n]: ").strip().lower()
+            if use_env in ['', 'y', 'yes']:
+                # Use environment configuration
+                slug = env_config['slug']
+                archive_url = env_config['archive_url']
+                archive_selector = env_config['archive_selector']
+                content_selector = env_config['content_selector']
+                pagination_type = env_config.get('pagination_type', 'none')
+                pagination_param = env_config.get('pagination_param')
+                thumbnail_selector = env_config.get('thumbnail_selector', 'img')
+            
+            # Override CLI arguments with env config if not provided
+            if not output:
+                output_extension = 'jsonl' if env_config.get('output_format', 'ndjson') == 'ndjson' else 'json'
+                output = f"data/raw/{slug}.{output_extension}"
+            
+            if not log:
+                log = f"logs/{slug}.log"
+            
+            if not max_pages and env_config.get('max_pages'):
+                max_pages = env_config['max_pages']
+            
+            if not use_proxy and env_config.get('use_proxy'):
+                use_proxy = env_config['use_proxy']
+            
+            if not force_engine and env_config.get('force_engine'):
+                force_engine = env_config['force_engine']
+            
+            if not resume and env_config.get('resume'):
+                resume = env_config['resume']
+            
+            # Update delay and timeout from env if not provided via CLI
+            if delay == 1.0 and env_config.get('delay'):  # Default delay
+                delay = env_config['delay']
+            
+            if timeout == 30 and env_config.get('timeout'):  # Default timeout
+                timeout = env_config['timeout']
+            
+            print(f"✅ Using .env configuration for '{slug}'")
+            env_mode = True
+        else:
+            env_mode = False
+    else:
+        env_mode = False
+    
+    # Get user input (skip if using env config)
     try:
-        # Slug for file naming
-        while True:
-            slug_input = input("Enter project slug (will be used for file naming, e.g., 'Irrawaddy News' -> 'irrawaddy_news'): ").strip()
-            if slug_input:
-                slug = normalize_slug(slug_input)
-                print(f"Normalized slug: {slug}")
-                break
-            print("Slug cannot be empty. Please enter a project name.")
+        if not env_mode:
+            # Slug for file naming
+            while True:
+                slug_input = input("Enter project slug (will be used for file naming, e.g., 'Irrawaddy News' -> 'irrawaddy_news'): ").strip()
+                if slug_input:
+                    slug = normalize_slug(slug_input)
+                    print(f"Normalized slug: {slug}")
+                    break
+                print("Slug cannot be empty. Please enter a project name.")
+            
+            # Archive URL
+            while True:
+                archive_url = input("Enter archive/list page URL (must be a list/category/archive page; site root not accepted): ").strip()
+                if is_valid_url(archive_url):
+                    break
+                print("Invalid URL. Please enter a valid URL with a path beyond the root domain.")
+            
+            # Archive selector
+            while True:
+                archive_selector = input("Enter archive/list item selector (CSS or XPath) — selector that identifies each article link block on the archive page: ").strip()
+                if validate_selector_format(archive_selector):
+                    break
+                print("Invalid selector format. Please enter a valid CSS or XPath selector.")
+            
+            # Content selector
+            while True:
+                content_selector = input("Enter article detail page content selector (CSS or XPath) — selector that identifies the article main content (will capture raw HTML inside this selector): ").strip()
+                if validate_selector_format(content_selector):
+                    break
+                print("Invalid selector format. Please enter a valid CSS or XPath selector.")
+            
+            # Pagination
+            pagination_type = input("Is pagination/loadmore needed? Choose one: [none/queryparam/click/scroll] : ").strip().lower()
+            pagination_param = None
+            
+            if pagination_type == 'queryparam':
+                pagination_param = input("Enter page param template (example: ?page={n} or /page/{n}): ").strip()
+            elif pagination_type == 'click':
+                pagination_param = input("Enter CSS/XPath selector for the \"Load more\" or \"Next\" button to click: ").strip()
+            elif pagination_type == 'scroll':
+                pass  # No additional input needed
+            elif pagination_type not in ['none', '']:
+                print("Invalid pagination type, using 'none'")
+                pagination_type = 'none'
+            
+            # Thumbnail - automatically include, find image in archive item
+            thumbnail_selector = "img"  # Default to find any image in archive item
         
         # Create directories if they don't exist
         Path("logs").mkdir(exist_ok=True)
@@ -629,7 +813,8 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
         resume=resume,
         max_pages=max_pages,
         urls_file=urls_file,
-        skip_archive=skip_archive
+        skip_archive=skip_archive,
+        slug=slug
     )
     
     # Print results

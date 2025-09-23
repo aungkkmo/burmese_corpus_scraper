@@ -1,0 +1,88 @@
+# Multi-Site Configuration for Burmese Corpus Scraper
+# Copy this file to sites.yaml and customize your configurations
+
+# Default scraper settings (can be overridden per site)
+defaults:
+  delay: 1.0
+  timeout: 30
+  max_pages: 5        # Set to null for unlimited scraping
+  use_proxy: false
+  output_format: ndjson
+  resume: false
+  log_level: INFO
+  thumbnail_selector: img
+
+# Site configurations
+sites:
+  voa_burmese:
+    name: "VOA Burmese"
+    description: "Voice of America Burmese Service"
+    # Multiple archive URLs with same selectors
+    archive_urls:
+      myanmar: "https://burmese.voanews.com/myanmar"
+      world: "https://burmese.voanews.com/world"
+      usa: "https://burmese.voanews.com/usa"
+      asia: "https://burmese.voanews.com/asia"
+    # Common selectors for all categories
+    archive_selector: ".media-block.media-block--t-spac.media-block--contain"
+    content_selector: "main.container"
+    pagination_type: 2  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
+    delay: 1.5
+    max_pages: 3
+
+  bbc_burmese:
+    name: "BBC Burmese"
+    description: "BBC News in Burmese"
+    archive_urls:
+      topics: "https://www.bbc.com/burmese/topics/c95y35118gyt"
+      myanmar: "https://www.bbc.com/burmese/topics/cjnwl8q4g7nt"
+      world: "https://www.bbc.com/burmese/topics/c40379e2-f47a-4d36-8b2e-0c92c2d3c2d3"
+    archive_selector: ".gs-c-promo"
+    content_selector: ".ssrcss-11r1m41-RichTextComponentWrapper"
+    pagination_type: 0  # 0=none, 1=queryparam, 2=click, 3=scroll
+    delay: 2.0
+    timeout: 45
+
+  rfa_burmese:
+    name: "RFA Burmese"
+    description: "Radio Free Asia Burmese Service"
+    archive_urls:
+      news: "https://www.rfa.org/burmese/"
+      myanmar: "https://www.rfa.org/burmese/news/myanmar"
+      politics: "https://www.rfa.org/burmese/news/politics"
+    archive_selector: ".sectionteaser"
+    content_selector: ".story-text"
+    pagination_type: 1  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "?page={n}"
+    max_pages: null     # Scrape all pages (unlimited)
+
+  irrawaddy:
+    name: "The Irrawaddy"
+    description: "The Irrawaddy News Magazine"
+    archive_urls:
+      news: "https://www.irrawaddy.com/category/news"
+      politics: "https://www.irrawaddy.com/category/news/politics"
+      business: "https://www.irrawaddy.com/category/news/business"
+      world: "https://www.irrawaddy.com/category/world"
+    archive_selector: ".news-item"
+    content_selector: ".article-content"
+    pagination_type: 1  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "/page/{n}/"
+    delay: 1.0
+
+  myanmar_now:
+    name: "Myanmar Now"
+    description: "Myanmar Now News"
+    archive_urls:
+      news: "https://www.myanmar-now.org/mm"
+      politics: "https://www.myanmar-now.org/mm/news/politics"
+      society: "https://www.myanmar-now.org/mm/news/society"
+    archive_selector: ".article-card"
+    content_selector: ".article-body"
+    pagination_type: 2  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: ".load-more-btn"
+    use_proxy: true
+
+# You can add more sites following the same pattern
+# Each site inherits from defaults but can override any setting

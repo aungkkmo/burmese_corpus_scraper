@@ -1,0 +1,144 @@
+# Complete Site Configuration Template
+# This file shows ALL available parameters for easy copying and customization
+
+# Global defaults (inherited by all sites unless overridden)
+defaults:
+  # Scraping behavior
+  delay: 1.0                    # Delay between requests (seconds)
+  timeout: 30                   # Request timeout (seconds)
+  max_pages: 5                  # Maximum pages to scrape per category (null = unlimited)
+  
+  # Engine and proxy settings
+  use_proxy: false              # Enable proxy rotation
+  force_engine: null            # Force specific engine (requests/playwright/selenium)
+  
+  # Output settings
+  output_format: ndjson         # Output format (ndjson/json)
+  resume: false                 # Resume from existing output
+  log_level: INFO               # Log level (DEBUG/INFO/WARNING/ERROR)
+  
+  # Content extraction
+  thumbnail_selector: img       # Default thumbnail selector
+
+# Site configurations
+sites:
+  # Template site showing ALL possible parameters
+  template_site:
+    # Basic site information
+    name: "Site Display Name"
+    description: "Brief description of the site"
+    
+    # Archive URLs - Choose ONE of these formats:
+    
+    # Option 1: Single archive URL
+    # archive_url: "https://example.com/news"
+    
+    # Option 2: Multiple categories with same selectors (RECOMMENDED)
+    archive_urls:
+      category1: "https://example.com/category1"
+      category2: "https://example.com/category2"
+      category3: "https://example.com/category3"
+    
+    # Required selectors
+    archive_selector: ".article-item"     # CSS/XPath for archive items
+    content_selector: ".article-content"  # CSS/XPath for article content
+    
+    # Pagination settings
+    pagination_type: 0                   # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: null               # Depends on pagination_type:
+                                         # 1 (queryparam): "?page={n}" or "/page/{n}/"
+                                         # 2 (click): ".load-more-btn" or "a.next-page"
+                                         # 0,3: null (no param needed)
+    
+    # Performance settings (override defaults)
+    delay: 2.0                           # Custom delay for this site
+    timeout: 45                          # Custom timeout for this site
+    max_pages: null                      # Unlimited pages (or set number like 10)
+    
+    # Engine and proxy settings (override defaults)
+    use_proxy: true                      # Enable proxy for this site
+    force_engine: "playwright"           # Force specific engine
+    
+    # Output settings (override defaults)
+    output_format: "json"                # Custom output format
+    resume: true                         # Enable resume for this site
+    log_level: "DEBUG"                   # Custom log level
+    
+    # Content extraction (override defaults)
+    thumbnail_selector: ".featured-image img"  # Custom thumbnail selector
+
+  # Real example: VOA Burmese with all common parameters
+  voa_burmese_example:
+    name: "VOA Burmese"
+    description: "Voice of America Burmese Service"
+    
+    # Multiple categories
+    archive_urls:
+      myanmar: "https://burmese.voanews.com/myanmar"
+      world: "https://burmese.voanews.com/world"
+      usa: "https://burmese.voanews.com/usa"
+      asia: "https://burmese.voanews.com/asia"
+    
+    # Selectors
+    archive_selector: ".media-block.media-block--t-spac.media-block--contain"
+    content_selector: "main.container"
+    
+    # Pagination
+    pagination_type: 2  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
+    
+    # Custom settings
+    delay: 1.5
+    max_pages: 3
+    timeout: 60
+
+  # Simple example: Single URL site
+  simple_site_example:
+    name: "Simple News Site"
+    description: "Example of single URL configuration"
+    
+    # Single archive URL
+    archive_url: "https://example.com/news"
+    
+    # Required selectors
+    archive_selector: ".news-item"
+    content_selector: ".article-body"
+    
+    # Simple pagination
+    pagination_type: 1  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "?page={n}"
+    
+    # Use defaults for other settings
+
+# Parameter Reference:
+#
+# REQUIRED PARAMETERS (must be specified for each site):
+# - name: Display name for the site
+# - archive_url OR archive_urls: URL(s) to scrape
+# - archive_selector: CSS/XPath selector for archive items
+# - content_selector: CSS/XPath selector for article content
+#
+# OPTIONAL PARAMETERS (inherit from defaults if not specified):
+# - description: Site description
+# - pagination_type: none/queryparam/click/scroll
+# - pagination_param: Parameter for pagination (depends on type)
+# - delay: Delay between requests (seconds)
+# - timeout: Request timeout (seconds)
+# - max_pages: Maximum pages to scrape
+# - use_proxy: Enable proxy rotation (true/false)
+# - force_engine: Force specific engine (requests/playwright/selenium)
+# - output_format: Output format (ndjson/json)
+# - resume: Resume from existing output (true/false)
+# - log_level: Log level (DEBUG/INFO/WARNING/ERROR)
+# - thumbnail_selector: CSS/XPath for thumbnail images
+#
+# PAGINATION TYPES:
+# - none: No pagination
+# - queryparam: URL parameter pagination (?page=2, /page/2/)
+# - click: Click-based pagination (load more button, next page link)
+# - scroll: Infinite scroll pagination
+#
+# USAGE EXAMPLES:
+# python3 -m scraper.main --site template_site --category category1
+# python3 -m scraper.main --site simple_site_example
+# python3 -m scraper.main --site voa_burmese_example --category myanmar

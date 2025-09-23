@@ -12,6 +12,7 @@ A powerful CLI tool for scraping Burmese articles from websites. This scraper co
 - **Flexible Output**: Supports NDJSON and JSON array formats
 - **Robust Error Handling**: Skips failed articles and continues scraping
 - **Progress Tracking**: Real-time progress bars and detailed statistics
+- **Comprehensive Logging**: Detailed logs for monitoring and debugging
 
 ## Installation
 
@@ -106,6 +107,253 @@ The scraper outputs articles in the following format:
 
 ## Configuration
 
+### Multi-Site Configuration (Recommended)
+
+Create a `sites.yaml` file to configure multiple sites and easily switch between them:
+
+```bash
+# Copy the example and customize
+cp sites.example.yaml sites.yaml
+```
+
+**Example sites.yaml:**
+```yaml
+defaults:
+  delay: 1.0
+  timeout: 30
+  max_pages: 5
+
+sites:
+  voa_burmese:
+    name: "VOA Burmese"
+    # Multiple categories with same selectors
+    archive_urls:
+      myanmar: "https://burmese.voanews.com/myanmar"
+      world: "https://burmese.voanews.com/world"
+      usa: "https://burmese.voanews.com/usa"
+    archive_selector: ".media-block.media-block--t-spac.media-block--contain"
+    content_selector: "main.container"
+    pagination_type: "click"
+    pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
+    
+  bbc_burmese:
+    name: "BBC Burmese"
+    archive_urls:
+      topics: "https://www.bbc.com/burmese/topics/c95y35118gyt"
+      myanmar: "https://www.bbc.com/burmese/topics/cjnwl8q4g7nt"
+    archive_selector: ".gs-c-promo"
+    content_selector: ".article-content"
+    delay: 2.0  # Override default for this site
+```
+
+**Interactive mode** - shows site menu:
+```bash
+python3 -m scraper.main
+# Output: 🌐 Found sites.yaml configuration file
+#         Available sites:
+#            voa_burmese: VOA Burmese
+#            bbc_burmese: BBC Burmese
+#         Enter site key to use: voa_burmese
+```
+
+**Direct site selection** - specify site directly:
+```bash
+# Run specific site without prompts
+python3 -m scraper.main --site voa_burmese
+python3 -m scraper.main --site bbc_burmese --max-pages 3
+python3 -m scraper.main --site rfa_burmese --delay 2.0
+
+# Run specific category within a site
+python3 -m scraper.main --site voa_burmese --category myanmar
+python3 -m scraper.main --site irrawaddy --category politics
+python3 -m scraper.main --site bbc_burmese --category world --max-pages 2
+
+# Unlimited scraping (override YAML setting)
+python3 -m scraper.main --site news_unlimited  # Uses max_pages: null from YAML
+python3 -m scraper.main --site simple_news --max-pages 0  # Override to unlimited
+```
+
+### Environment File (.env)
+
+Alternative single-site configuration using `.env` file:
+
+```bash
+# Copy the example and customize
+cp .env.example .env
+```
+
+The scraper will use sites.yaml first, then fall back to .env if no site is selected.
+
+## Site Configuration Guide
+
+### Quick Copy Template
+
+Use this template to add a new site to your `sites.yaml`:
+
+```yaml
+  your_site_name:
+    name: "Your Site Display Name"
+    description: "Brief description"
+    
+    # Choose ONE of these URL formats:
+    
+    # Single URL:
+    archive_url: "https://yoursite.com/news"
+    
+    # OR Multiple categories:
+    archive_urls:
+      news: "https://yoursite.com/news"
+      politics: "https://yoursite.com/politics"
+      world: "https://yoursite.com/world"
+    
+    # Required selectors (inspect the website to find these)
+    archive_selector: ".article-item"      # Selector for each article on archive page
+    content_selector: ".article-content"   # Selector for article content on detail page
+    
+    # Pagination (choose one)
+    pagination_type: 0                     # 0=none, 1=queryparam, 2=click, 3=scroll
+    # pagination_type: 1                   # URL-based: ?page=2
+    # pagination_param: "?page={n}"
+    # pagination_type: 2                   # Button-based
+    # pagination_param: ".load-more-btn"
+    
+    # Optional overrides
+    delay: 1.0                             # Seconds between requests
+    max_pages: 5                           # Maximum pages to scrape (null = unlimited)
+    timeout: 30                            # Request timeout
+```
+
+### Parameter Reference
+
+#### Required Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `name` | Display name for the site | `"BBC Burmese"` |
+| `archive_url` OR `archive_urls` | URL(s) to scrape | See examples below |
+| `archive_selector` | CSS/XPath for archive items | `".news-item"` |
+| `content_selector` | CSS/XPath for article content | `".article-body"` |
+
+#### Archive URL Formats
+
+**Single URL:**
+```yaml
+archive_url: "https://site.com/news"
+```
+
+**Multiple Categories:**
+```yaml
+archive_urls:
+  news: "https://site.com/news"
+  politics: "https://site.com/politics"
+  sports: "https://site.com/sports"
+```
+
+#### Pagination Types
+
+| Number | Type | Description | Parameter Example |
+|--------|------|-------------|-------------------|
+| `0` | none | No pagination | `pagination_param: null` |
+| `1` | queryparam | URL-based pagination | `"?page={n}"` or `"/page/{n}/"` |
+| `2` | click | Click button/link | `".load-more"` or `"a.next-page"` |
+| `3` | scroll | Infinite scroll | `pagination_param: null` |
+
+#### Max Pages Behavior
+
+| Value | Behavior | Example |
+|-------|----------|---------|
+| `5` | Scrape maximum 5 pages | `max_pages: 5` |
+| `null` | Scrape all available pages | `max_pages: null` |
+| `1` | Scrape only first page | `max_pages: 1` |
+
+**Note**: When `max_pages` is `null`, the scraper will continue until:
+- No more pages are found (404 errors)
+- Content becomes too small (likely empty pages)
+- Manual interruption (Ctrl+C)
+
+#### Optional Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `description` | - | Site description |
+| `delay` | 1.0 | Seconds between requests |
+| `timeout` | 30 | Request timeout (seconds) |
+| `max_pages` | 5 | Maximum pages to scrape (null = unlimited) |
+| `use_proxy` | false | Enable proxy rotation |
+| `force_engine` | null | Force engine (requests/playwright/selenium) |
+| `output_format` | ndjson | Output format (ndjson/json) |
+| `thumbnail_selector` | img | Thumbnail image selector |
+
+### Configuration Examples
+
+#### VOA Burmese
+```yaml
+  voa_burmese:
+    name: "VOA Burmese"
+    archive_urls:
+      myanmar: "https://burmese.voanews.com/myanmar"
+      world: "https://burmese.voanews.com/world"
+    archive_selector: ".media-block.media-block--t-spac.media-block--contain"
+    content_selector: "main.container"
+    pagination_type: 2  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
+    delay: 1.5
+```
+
+#### BBC Burmese
+```yaml
+  bbc_burmese:
+    name: "BBC Burmese"
+    archive_urls:
+      topics: "https://www.bbc.com/burmese/topics/c95y35118gyt"
+      myanmar: "https://www.bbc.com/burmese/topics/cjnwl8q4g7nt"
+    archive_selector: ".gs-c-promo"
+    content_selector: ".ssrcss-11r1m41-RichTextComponentWrapper"
+    pagination_type: 0  # 0=none, 1=queryparam, 2=click, 3=scroll
+    delay: 2.0
+```
+
+#### Simple Site (Limited Pages)
+```yaml
+  simple_news:
+    name: "Simple News Site"
+    archive_url: "https://example.com/news"
+    archive_selector: ".article"
+    content_selector: ".content"
+    pagination_type: 1  # 0=none, 1=queryparam, 2=click, 3=scroll
+    pagination_param: "?page={n}"
+    max_pages: 10       # Limit to 10 pages
+```
+
+#### Unlimited Scraping Example
+```yaml
+  news_unlimited:
+    name: "News Site (All Pages)"
+    archive_url: "https://example.com/news"
+    archive_selector: ".article"
+    content_selector: ".content"
+    pagination_type: 1  # URL-based pagination
+    pagination_param: "?page={n}"
+    max_pages: null     # Scrape ALL pages
+    delay: 2.0          # Be respectful with unlimited scraping
+```
+
+### Finding Selectors
+
+1. **Open the website** in your browser
+2. **Right-click** on an article item → "Inspect Element"
+3. **Find the common selector** that identifies all articles
+4. **Test the selector** in browser console: `document.querySelectorAll('your-selector')`
+5. **For content selector**, go to an article page and find the main content container
+
+### Configuration Tips
+
+- Start with `pagination_type: 0` (none) for testing
+- Use `delay: 2.0` or higher for sites that might block requests
+- Set `use_proxy: true` for sites that are strict about blocking
+- Use `force_engine: "playwright"` for JavaScript-heavy sites
+- Test with `max_pages: 1` first to verify selectors work
+
 ### Proxy Configuration
 
 The scraper includes built-in proxy rotation using free proxies. You can also provide your own proxy list by modifying the `utility/ip_rotation.py` file.
@@ -131,7 +379,8 @@ burmese_corpus_scraper/
 ├── data/
 │   └── raw/             # Scraped data output
 ├── logs/                # Log files
-├── config.json          # Configuration
+├── sites.example.yaml   # Site configuration examples
+├── sites.template.yaml  # Complete configuration template
 ├── requirements.txt     # Python dependencies
 └── README.md
 ```
@@ -159,6 +408,7 @@ The scraper automatically tests engines in this order:
 1. **Requests** (fastest, works for static content)
 2. **Playwright** (handles JavaScript, recommended)
 3. **Selenium** (fallback for complex sites)
+
 
 ## Best Practices
 
