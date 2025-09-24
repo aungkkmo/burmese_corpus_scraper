@@ -132,10 +132,9 @@ class BurmeseCorpusScraper:
             all_article_urls = []
             
             if skip_archive and urls_file:
-                # Load URLs from file
+                # Load URLs from file (one URL per line)
                 with open(urls_file, 'r', encoding='utf-8') as f:
-                    urls_data = json.load(f)
-                    all_article_urls = urls_data.get('urls', [])
+                    all_article_urls = [line.strip() for line in f if line.strip()]
                 
                 self.logger.info(f"Loaded {len(all_article_urls)} URLs from {urls_file}")
                 
@@ -413,32 +412,39 @@ class BurmeseCorpusScraper:
     
     def _save_urls_to_file(self, urls_file: str, urls: List[str], 
                           archive_url: str, archive_selector: str, content_selector: str):
-        """Save URLs to file for later use"""
+        """Save URLs to file for later use (one URL per line)"""
         try:
-            # Deduplicate URLs while preserving order
-            unique_urls = []
-            seen_urls = set()
+            # Load existing URLs if file exists
+            existing_urls = set()
+            if os.path.exists(urls_file):
+                with open(urls_file, 'r', encoding='utf-8') as f:
+                    existing_urls = {line.strip() for line in f if line.strip()}
+            
+            # Deduplicate new URLs and merge with existing
+            new_urls = []
+            duplicates_removed = 0
+            
             for url in urls:
-                if url not in seen_urls:
-                    unique_urls.append(url)
-                    seen_urls.add(url)
+                if url not in existing_urls:
+                    new_urls.append(url)
+                    existing_urls.add(url)
+                else:
+                    duplicates_removed += 1
             
-            duplicates_removed = len(urls) - len(unique_urls)
             if duplicates_removed > 0:
-                self.logger.info(f"Removed {duplicates_removed} duplicate URLs")
+                self.logger.info(f"Skipped {duplicates_removed} duplicate URLs")
             
-            urls_data = {
-                'archive_url': archive_url,
-                'archive_selector': archive_selector,
-                'content_selector': content_selector,
-                'total_urls': len(unique_urls),
-                'urls': unique_urls
-            }
+            # Append new URLs to file
+            if new_urls:
+                with open(urls_file, 'a', encoding='utf-8') as f:
+                    for url in new_urls:
+                        f.write(f"{url}\n")
+                
+                self.logger.info(f"Saved {len(new_urls)} new URLs to {urls_file}")
+            else:
+                self.logger.info("No new URLs to save")
             
-            with open(urls_file, 'w', encoding='utf-8') as f:
-                json.dump(urls_data, f, ensure_ascii=False, indent=2)
-            
-            self.logger.info(f"Saved {len(unique_urls)} unique URLs to {urls_file}")
+            self.logger.info(f"Total unique URLs in file: {len(existing_urls)}")
             
         except Exception as e:
             self.logger.error(f"Error saving URLs to file: {e}")
@@ -547,10 +553,13 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                         print(f"   {cat_key}: {cat_url}")
                     sys.exit(1)
             else:
-                # No category specified - check if site has multiple categories
+                # No category specified - run all available categories
                 categories = get_site_categories(sites_config, site_choice)
-                if categories and len(categories) > 1:
-                    print(f"🔄 No category specified for '{site_choice}'. Running all {len(categories)} categories:")
+                if categories:
+                    if len(categories) > 1:
+                        print(f"🔄 No category specified for '{site_choice}'. Running all {len(categories)} categories:")
+                    else:
+                        print(f"🔄 Running the available category for '{site_choice}':")
                     for cat_key in categories.keys():
                         print(f"   📂 {cat_key}")
                     print()
@@ -574,7 +583,7 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                         category_slug = site_config['slug']
                         category_output = f"data/raw/{category_slug}.jsonl"
                         category_log = f"logs/{category_slug}.log"
-                        category_urls_file = f"data/raw/{category_slug}_urls.json"
+                        category_urls_file = f"data/raw/{category_slug}_urls.txt"
                         
                         # Initialize category-specific scraper
                         logger = setup_logging(category_log, log_level)
@@ -828,7 +837,7 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
             log = f"logs/{slug}.log"
         
         # Set up URLs file path
-        urls_file = f"data/raw/{slug}_urls.json"
+        urls_file = f"data/raw/{slug}_urls.txt"
         
         # Setup logging now that we have the log file path
         logger = setup_logging(log, log_level)
@@ -846,24 +855,32 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                 print("Run without --skip-archive first to generate the URLs file.")
                 sys.exit(1)
             
-            # Load URLs from file
+            # Load URLs from file (one URL per line)
             with open(urls_file, 'r', encoding='utf-8') as f:
-                urls_data = json.load(f)
+                all_urls = [line.strip() for line in f if line.strip()]
             
-            archive_url = urls_data.get('archive_url', '')
-            archive_selector = urls_data.get('archive_selector', '')
-            content_selector = urls_data.get('content_selector', '')
-            pagination_type = 'none'  # Skip pagination in skip-archive mode
+            # For skip-archive mode, we need to get config from sites.yaml
+            if site:
+                sites_config = load_sites_config()
+                site_config = get_site_config(sites_config, site, category or list(sites_config[site]['archive_urls'].keys())[0])
+                archive_url = list(site_config['archive_urls'].values())[0]
+                archive_selector = site_config['archive_selector']
+                content_selector = site_config['content_selector']
+            else:
+                # Fallback for manual mode
+                archive_url = input("Enter archive/list page URL (must be a list/category/archive page; site root not accepted): ").strip()
+                archive_selector = input("Enter archive/list item selector (CSS or XPath) — selector that identifies each article link block on the archive page: ").strip()
+                content_selector = input("Enter article detail page content selector (CSS or XPath) — selector that identifies the article main content (will capture raw HTML inside this selector): ").strip()
+            
+            pagination_type = 'none'
             pagination_param = None
             thumbnail_selector = "img"
             
-            logger.info(f"Skip-archive mode: loaded {len(urls_data.get('urls', []))} URLs from {urls_file}")
+            logger.info(f"Skip-archive mode: loaded {len(all_urls)} URLs from {urls_file}")
             
         elif env_mode:
             # Config mode: variables already set from sites.yaml or .env
             logger.info(f"Config mode: using configuration for {slug}")
-            
-        else:
             # Archive URL
             while True:
                 archive_url = input("Enter archive/list page URL (must be a list/category/archive page; site root not accepted): ").strip()
