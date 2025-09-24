@@ -101,21 +101,46 @@ sites:
     archive_selector: "ul#posts-container li.post-item"
     content_selector: "div.main-content article#the-post"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
-    pagination_param: "page/{n}/"
+    pagination_param: "/page/{n}/"
     delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: true
 
   myanmar_national_portal:
     name: "Myanmar National Portal"
-    description: "Myanmar Natioanl Portal News"
+    description: "Myanmar National Portal News"
     slug: "myanmar_national_portal"
     archive_urls:
-      news: "https://myanmar.gov.mm/news-media/news/latest-news?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354&amp;p_p_lifecycle=0&amp;p_p_state=normal&amp;p_p_mode=view&amp;_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_delta=10&amp;p_r_p_resetCur=false&amp"
+      news: "https://myanmar.gov.mm/news-media/news/latest-news?p_p_id=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_delta=10&p_r_p_resetCur=false&sorted=latest"
     archive_selector: "div.smallcardstyle"
     content_selector: "div.journal-content-article"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
-    pagination_param: ";com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_cur={n}"
+    pagination_param: "&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_cur={n}"
     delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
+    use_proxy: true
+    force_engine: requests
+
+
+  foodindustrydirectory:
+    name: "Food Industry Directory"
+    description: "Food Industry Directory News"
+    slug: "foodindustrydirectory"
+    archive_urls:
+      thaifood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/thinland.html"
+      chinesefood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/chinese.html"
+      burmesefood: "hhttps://www.foodindustrydirectory.com.mm/food-industry/cuisine/myanmar.html"
+      koreanfood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/korea.html"
+      japanesefood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/japan.html"
+      indianfood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/india.html"
+      fruitsandveggies: "https://www.foodindustrydirectory.com.mm/food-industry/fruits-vegetables.html"
+      foodlivestock: "https://www.foodindustrydirectory.com.mm/food-industry/food-livestock.html"
+      foodhealth: "https://www.foodindustrydirectory.com.mm/food-industry/food-health.html"
+      restaurant: "https://www.foodindustrydirectory.com.mm/food-industry/restaurant.html"
+      eventexhibition: "https://www.foodindustrydirectory.com.mm/food-industry/event-exhibition.html"
+    archive_selector: "div.itemList div.catItemBody div.item"
+    content_selector: "div.itemBody"
+    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
+    pagination_param: "?start={n}"
+    delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: true
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting

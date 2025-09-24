@@ -434,6 +434,7 @@ This section tracks sites that have been successfully tested with the scraper:
 | RFA Burmese | ✅ Success | 2025-09-24 | Selector: `.c-stack.b-rfa-results-list.b-rfa-results-list--show-image`, Force: Playwright, Load more pagination: 3 clicks → 40 articles (100% success) |
 | Irrawaddy | ✅ Success | 2025-09-24 | Selector: `article.jeg_post.format-standard`, Force: Playwright, Query pagination, 25 unique URLs |
 | Myanmar Now | ✅ Success | 2025-09-24 | Selector: `ul#posts-container li.post-item`, Content: `div.main-content article#the-post`, Proxy rotation, 2 pages → 8/10 articles (80% success) |
+| Myanmar National Portal | ✅ Success | 2025-09-24 | Selector: `div.smallcardstyle`, Content: `div.journal-content-article`, Liferay pagination: 3 pages → 30 unique URLs (100% success), `--ignore-robots` required |
 
 ### Testing Notes:
 - **VOA Burmese**: Successfully extracted articles using the configured selectors. The `.media-block.media-block--t-spac.media-block--contain` selector correctly identifies article items, and `main.container` selector captures the full article content.
@@ -441,6 +442,7 @@ This section tracks sites that have been successfully tested with the scraper:
 - **RFA Burmese**: Successfully tested with advanced load more pagination! Archive selector works perfectly, forced Playwright engine handles site restrictions. **Load more pagination fully implemented**: 3 clicks on load more button → 40 unique articles collected and processed with 100% success rate (40/40 articles saved). Complete pipeline working from URL collection to article extraction.
 - **Irrawaddy**: Successfully tested with forced Playwright engine and query parameter pagination (`?page={n}`). Archive selector `article.jeg_post.format-standard` works perfectly, automatic deduplication removes overlapping content between pages (31→25 unique URLs), and 3-5 second delays handle JS-heavy content appropriately.
 - **Myanmar Now**: Successfully tested with proxy rotation and query parameter pagination (`page/{n}/`). Archive selector `ul#posts-container li.post-item` works perfectly, content selector `div.main-content article#the-post` captures articles effectively. Processed 2 pages → 10 URLs → 8/10 articles successfully extracted (80% success rate due to proxy limitations). Automatic proxy failover working correctly.
+- **Myanmar National Portal**: Successfully tested with complex Liferay pagination system! Government portal requires `--ignore-robots` flag due to robots.txt restrictions. Archive selector `div.smallcardstyle` works perfectly, content selector `div.journal-content-article` captures official government content. **Complex URL structure mastered**: Complete Liferay parameter chain with `&sorted=latest` and proper pagination parameter `&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_cur={n}`. Processed 3 pages → 30 unique URLs (100% success rate). Demonstrates scraper's ability to handle the most complex government CMS systems.
 
 *Add new test results here as sites are verified...*
 
