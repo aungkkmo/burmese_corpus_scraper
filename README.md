@@ -42,6 +42,9 @@ python3 -m scraper.main --site voa_burmese --category news --ignore-robots
 
 # Run with page limits for testing
 python3 -m scraper.main --site irrawaddy_burmese --max-pages 3 --ignore-robots
+
+# Resume from specific category and page (NEW!)
+python3 -m scraper.main --site myanmar_now --ignore-robots --resume=news,25
 ```
 
 ### 🆕 Multi-Category Processing
@@ -69,6 +72,28 @@ python3 -m scraper.main --site bbc_burmese --ignore-robots
 - ✅ **Progress tracking** - Shows success/failure for each category
 - ✅ **Error resilience** - Failed categories don't stop others
 
+### 🔄 Resume Functionality
+
+When processing large sites, you can resume from a specific category and page if the scraper stops:
+
+```bash
+# Resume from page 25 in the 'news' category
+python3 -m scraper.main --site myanmar_now --ignore-robots --resume=news,25
+
+# Resume from page 50 in 'opinion' category with page limit
+python3 -m scraper.main --site myanmar_now --ignore-robots --resume=opinion,50 --max-pages=100
+
+# Resume works with unlimited scraping (max-pages=0)
+python3 -m scraper.main --site myanmar_now --ignore-robots --resume=news,25 --max-pages=0
+```
+
+**Resume Features:**
+- ✅ **Category skipping** - Automatically skips categories before the resume point
+- ✅ **Page resumption** - Starts from the specified page number
+- ✅ **Smart continuation** - Works with both limited and unlimited scraping
+- ✅ **Queryparam support** - Works with numbered pagination (page/1/, page/2/, etc.)
+- ℹ️ **Note**: Resume only works with `queryparam` pagination type
+
 ### Manual Configuration Mode
 
 For custom sites, run without arguments for interactive setup:
@@ -85,6 +110,28 @@ The tool will prompt you for:
 4. **Pagination Type**: Choose from none/queryparam/loadmore/scroll
 5. **Thumbnail Inclusion**: Whether to extract thumbnail images from archive items
 
+## 📄 Pagination Types
+
+The scraper supports different pagination methods:
+
+### ✅ **Supported Pagination Types:**
+
+1. **`none`** - Single page, no pagination
+2. **`queryparam`** - URL-based pagination (page/1/, page/2/, ?page=1, etc.)
+   - ✅ **Resume support** - Can resume from specific page
+   - ✅ **Smart stopping** - Automatically detects when content ends
+3. **`loadmore`** - Button-based pagination ("Load More" buttons)
+   - ✅ **Automatic clicking** - Clicks button until no more content
+   - ✅ **Duplicate handling** - Automatically removes duplicate URLs
+
+### 🚧 **In Development:**
+
+4. **`scroll`** - Infinite scroll pagination
+   - ⚠️ **Status**: Not yet implemented
+   - 🤝 **Contribution Welcome**: If you're interested in implementing scroll pagination, please submit a pull request!
+
+**Note**: Resume functionality (`--resume=category,page`) only works with `queryparam` pagination type.
+
 ### Command Line Options
 
 ```bash
@@ -100,8 +147,8 @@ Options:
   --delay TEXT                   Delay between requests (seconds or range like "2,5") [default: "1.0"]
   --timeout INTEGER              Request timeout in seconds [default: 30]
   --ignore-robots                Ignore robots.txt restrictions
-  --resume                       Resume from existing output file
-  --max-pages INTEGER            Maximum pages to scrape per category
+  --resume TEXT                  Resume from existing output file or specific category,page (e.g., "news,25")
+  --max-pages INTEGER            Maximum pages to scrape per category (0 = unlimited)
   --skip-archive                 Skip archive scraping, process existing URLs
   --log TEXT                     Log file path
   --log-level [DEBUG|INFO|WARNING|ERROR]

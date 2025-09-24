@@ -657,9 +657,9 @@ class WebCrawler:
             self.logger.error("No engine selected")
             return None
         
-        if not self.check_robots_txt(url):
-            self.logger.warning(f"Robots.txt disallows access to {url}")
-            return None
+        # if not self.check_robots_txt(url):
+        #     self.logger.warning(f"Robots.txt disallows access to {url}")
+        #     return None
         
         return self.current_engine.get_page(url)
     

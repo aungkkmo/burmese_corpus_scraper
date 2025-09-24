@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from tqdm import tqdm
+import os
 
 # Import utility modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -69,7 +70,7 @@ class BurmeseCorpusScraper:
                thumbnail_selector: str = None, output_file: str = 'output.jsonl',
                format_type: str = 'ndjson', force_engine: str = None,
                resume: bool = False, max_pages: int = None, urls_file: str = None,
-               skip_archive: bool = False, slug: str = None) -> Dict[str, Any]:
+               skip_archive: bool = False, slug: str = None, resume_page: int = None) -> Dict[str, Any]:
         """
         Main scraping method
         
@@ -158,9 +159,11 @@ class BurmeseCorpusScraper:
                 )
                 
             else:
+                
+                print("No skip archive mode")
                 # Get archive URLs to process
                 archive_urls = self._get_archive_urls(
-                    archive_url, pagination_type, pagination_param, max_pages
+                    archive_url, pagination_type, pagination_param, max_pages, archive_selector, resume_page
                 )
                 
                 self.logger.info(f"Will process {len(archive_urls)} archive pages")
@@ -229,7 +232,7 @@ class BurmeseCorpusScraper:
         return True
     
     def _get_archive_urls(self, base_url: str, pagination_type: str, 
-                         pagination_param: str = None, max_pages: int = None) -> List[str]:
+                         pagination_param: str = None, max_pages: int = None, archive_selector: str = None, resume_page: int = None) -> List[str]:
         """Get list of archive URLs to process based on pagination type"""
         
         urls = [base_url]
@@ -238,39 +241,75 @@ class BurmeseCorpusScraper:
             return urls
         
         if pagination_type == 'queryparam':
-            # Generate URLs with page parameters
-            page = 2
-            while True:
-                if max_pages and max_pages > 0 and len(urls) >= max_pages:
-                    break
+            # Generate URLs with smart stopping for unlimited scraping
+            if max_pages and max_pages > 0:
+                # Use specified max_pages - generate all URLs upfront
+                total_pages = max_pages
+                start_page = resume_page if resume_page else 2
                 
-                # Replace {n} with page number
-                param = pagination_param.replace('{n}', str(page))
-                
-                if param.startswith('?') or param.startswith('&'):
-                    next_url = base_url + param
+                if resume_page:
+                    self.logger.info(f"Resuming from page {resume_page}, generating URLs for pages {start_page}-{total_pages}")
                 else:
-                    # Assume it's a path parameter
-                    next_url = base_url.rstrip('/') + '/' + param.lstrip('/')
+                    self.logger.info(f"Generating URLs for {total_pages} pages")
                 
-                # Test if page exists
-                content = self.crawler.get_page_content(next_url)
-                if not content:
-                    self.logger.info(f"Pagination ended at page {page-1}")
-                    break
+                for page in range(start_page, total_pages + 1):
+                    param = pagination_param.replace('{n}', str(page))
+                    if param.startswith('?') or param.startswith('&'):
+                        next_url = base_url + param
+                    else:
+                        next_url = base_url.rstrip('/') + '/' + param.lstrip('/')
+                    urls.append(next_url)
+            else:
+                # Unlimited scraping - generate URLs dynamically with smart stopping
+                start_page = resume_page if resume_page else 2
+                if resume_page:
+                    self.logger.info(f"Unlimited scraping mode - resuming from page {resume_page}")
+                else:
+                    self.logger.info("Unlimited scraping mode - will stop when no new content found")
+                page = start_page
+                consecutive_empty = 0
+                max_consecutive_empty = 5  # Stop after 5 consecutive empty pages
+                max_safety_limit = 1000   # Safety limit to prevent infinite loops
                 
-                # Check if page has content (simple heuristic)
-                if len(content) < 1000:  # Very small page, likely empty
-                    self.logger.info(f"Pagination ended at page {page-1} (small content)")
-                    break
+                while page <= max_safety_limit:
+                    param = pagination_param.replace('{n}', str(page))
+                    if param.startswith('?') or param.startswith('&'):
+                        next_url = base_url + param
+                    else:
+                        next_url = base_url.rstrip('/') + '/' + param.lstrip('/')
+                    
+                    # Test if page has content
+                    content = self.crawler.get_page_content(next_url)
+                    if not content:
+                        consecutive_empty += 1
+                        self.logger.info(f"Page {page} is empty ({consecutive_empty}/{max_consecutive_empty})")
+                        if consecutive_empty >= max_consecutive_empty:
+                            self.logger.info(f"Stopping: {consecutive_empty} consecutive empty pages found")
+                            break
+                    else:
+                        # Quick check if page has archive items
+                        from .extractor import ContentExtractor
+                        extractor = ContentExtractor()
+                        try:
+                            items = extractor.extract_archive_items(content, archive_selector)
+                            if not items:
+                                consecutive_empty += 1
+                                self.logger.info(f"Page {page} has no archive items ({consecutive_empty}/{max_consecutive_empty})")
+                                if consecutive_empty >= max_consecutive_empty:
+                                    self.logger.info(f"Stopping: {consecutive_empty} consecutive pages with no items")
+                                    break
+                            else:
+                                consecutive_empty = 0  # Reset counter
+                                urls.append(next_url)
+                                self.logger.info(f"Page {page} has {len(items)} items - continuing")
+                        except:
+                            consecutive_empty += 1
+                            if consecutive_empty >= max_consecutive_empty:
+                                break
+                    
+                    page += 1
                 
-                urls.append(next_url)
-                page += 1
-                
-                # Safety limit
-                if page > 1000:
-                    self.logger.warning("Reached safety limit of 1000 pages")
-                    break
+                self.logger.info(f"Generated {len(urls)} total pages (including base page)")
         
         elif pagination_type == 'loadmore':
             # Load more button pagination
@@ -498,7 +537,7 @@ class BurmeseCorpusScraper:
 @click.option('--delay', default="1.0", type=str, help='Delay between requests (seconds or range like "2,5" or "3 to 6")')
 @click.option('--timeout', default=30, type=int, help='Request timeout (seconds)')
 @click.option('--ignore-robots', is_flag=True, help='Ignore robots.txt')
-@click.option('--resume', is_flag=True, help='Resume from existing output file')
+@click.option('--resume', help='Resume from existing output file or specific category,page (e.g., "news,25")')
 @click.option('--max-pages', type=int, help='Maximum pages to scrape (0 or None = unlimited)')
 @click.option('--log', help='Log file path (will be overridden by slug if not provided)')
 @click.option('--log-level', default='INFO', 
@@ -564,11 +603,35 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                         print(f"   📂 {cat_key}")
                     print()
                     
+                    # Parse resume flag for category,page format
+                    resume_category = None
+                    resume_page = None
+                    skip_until_resume = False
+                    
+                    if resume and ',' in str(resume):
+                        try:
+                            resume_parts = str(resume).split(',')
+                            resume_category = resume_parts[0].strip()
+                            resume_page = int(resume_parts[1].strip())
+                            skip_until_resume = True
+                            print(f"🔄 Resume mode: Starting from category '{resume_category}', page {resume_page}")
+                        except (ValueError, IndexError):
+                            print(f"❌ Invalid resume format: {resume}. Use format: category,page (e.g., 'news,25')")
+                            sys.exit(1)
+                    
                     # Run all categories
                     all_success = True
                     total_articles = 0
                     
                     for cat_key in categories.keys():
+                        # Skip categories until we reach the resume point
+                        if skip_until_resume:
+                            if cat_key != resume_category:
+                                print(f"⏭️  Skipping category: {cat_key} (resume from {resume_category})")
+                                continue
+                            else:
+                                skip_until_resume = False  # Found resume category
+                                print(f"🎯 Resuming from category: {cat_key}")
                         print(f"🚀 Processing category: {cat_key}")
                         print("=" * 50)
                         
@@ -615,6 +678,11 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                             respect_robots=not ignore_robots
                         )
                         
+                        # Determine resume page for this category
+                        current_resume_page = None
+                        if cat_key == resume_category and resume_page:
+                            current_resume_page = resume_page
+                        
                         # Run scraper for this category
                         try:
                             results = category_scraper.scrape(
@@ -631,7 +699,8 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                                 max_pages=max_pages,
                                 urls_file=category_urls_file,
                                 skip_archive=skip_archive,
-                                slug=category_slug
+                                slug=category_slug,
+                                resume_page=current_resume_page
                             )
                             
                             if results['success']:
