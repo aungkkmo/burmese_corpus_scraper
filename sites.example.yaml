@@ -166,7 +166,7 @@ sites:
     slug: "isec_myanmar"
     archive_urls:
       blog: "https://www.isecmyanmar.com.mm/resource_categories/blog-post/"
-    archive_selector: "article a.leading-relaxed.pb-4
+    archive_selector: "article a.leading-relaxed.pb-4"
     content_selector: "article.flex.flex-col.shadow-md.my-4.items-center"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
