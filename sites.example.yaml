@@ -166,12 +166,12 @@ sites:
     slug: "isec_myanmar"
     archive_urls:
       blog: "https://www.isecmyanmar.com.mm/resource_categories/blog-post/"
-    archive_selector: "article.flex.flex-col.shadow-md.my-4.items-center"
+    archive_selector: "article a.leading-relaxed.pb-4
     content_selector: "article.flex.flex-col.shadow-md.my-4.items-center"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
     delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
-    use_proxy: false
+    use_proxy: true
     force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
