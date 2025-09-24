@@ -664,21 +664,21 @@ class WebCrawler:
         return self.current_engine.get_page(url)
     
     def get_page_with_pagination(self, url: str, button_selector: str, max_pages: int) -> Optional[str]:
-        """Get page content with click pagination (load more button)"""
+        """Get page content with load more button pagination"""
         if not self.current_engine:
             self.logger.error("No engine selected")
             return None
         
         # Only works with Playwright engine
         if not hasattr(self.current_engine, 'page') or not self.current_engine.page:
-            self.logger.warning("Click pagination requires Playwright engine")
+            self.logger.warning("Load more pagination requires Playwright engine")
             return self.get_page_content(url)  # Fallback to regular content
         
         try:
             import asyncio
             import random
             
-            async def click_pagination():
+            async def load_more_pagination():
                 # Use the EXISTING page from current engine
                 page = self.current_engine.page
                 
@@ -691,7 +691,7 @@ class WebCrawler:
                 clicks_performed = 0
                 max_clicks = max_pages - 1 if max_pages else 10  # Default to 10 clicks
                 
-                # Simple click loop as requested
+                # Simple load more button clicking loop
                 while clicks_performed < max_clicks:
                     try:
                         # Check if load more button exists
@@ -703,10 +703,10 @@ class WebCrawler:
                         """)
                         
                         if not button_exists:
-                            self.logger.info(f"No more load more button found after {clicks_performed} clicks")
+                            self.logger.info(f"No more load more button found after {clicks_performed} button clicks")
                             break
                         
-                        self.logger.info(f"Clicking load more button (click {clicks_performed + 1})")
+                        self.logger.info(f"Clicking load more button ({clicks_performed + 1})")
                         
                         # Click the button
                         await page.evaluate(f"""
@@ -727,7 +727,7 @@ class WebCrawler:
                         self.logger.warning(f"Error clicking load more button: {e}")
                         break
                 
-                self.logger.info(f"Completed pagination with {clicks_performed} clicks")
+                self.logger.info(f"Completed load more pagination with {clicks_performed} button clicks")
                 
                 # Get final content
                 return await page.content()
@@ -738,22 +738,17 @@ class WebCrawler:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     # If loop is already running, we need to use a different approach
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        future = executor.submit(asyncio.run, click_pagination())
-                        content = future.result(timeout=300)  # 5 minute timeout
-                    return content
+                    import nest_asyncio
+                    nest_asyncio.apply()
+                    return loop.run_until_complete(load_more_pagination())
                 else:
-                    # Loop exists but not running
-                    content = loop.run_until_complete(click_pagination())
-                    return content
+                    return loop.run_until_complete(load_more_pagination())
             except RuntimeError:
-                # No event loop exists, create one
-                content = asyncio.run(click_pagination())
-                return content
+                # No event loop exists, create a new one
+                return asyncio.run(load_more_pagination())
                 
         except Exception as e:
-            self.logger.error(f"Error during click pagination: {e}")
+            self.logger.error(f"Error during load more pagination: {e}")
             return self.get_page_content(url)  # Fallback to regular content
     
     def find_elements(self, content: str, selector: str) -> List:

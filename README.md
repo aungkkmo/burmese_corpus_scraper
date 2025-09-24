@@ -431,14 +431,14 @@ This section tracks sites that have been successfully tested with the scraper:
 |------|--------|-------------|-------|
 | VOA Burmese | ✅ Success | 2025-09-24 | Selector: `.media-block.media-block--t-spac.media-block--contain`, Content: `main.container` |
 | BBC Burmese | ✅ Success | 2025-09-24 | Selector: `div[data-testid="curation-grid-normal"] ul li`, Content: `main`, Delay: "1,3" |
-| RFA Burmese | ✅ Success | 2025-09-24 | Selector: `.c-stack.b-rfa-results-list.b-rfa-results-list--show-image`, Force: Playwright, Click pagination: 3 clicks → 40 articles (100% success) |
+| RFA Burmese | ✅ Success | 2025-09-24 | Selector: `.c-stack.b-rfa-results-list.b-rfa-results-list--show-image`, Force: Playwright, Load more pagination: 3 clicks → 40 articles (100% success) |
 | Irrawaddy | ✅ Success | 2025-09-24 | Selector: `article.jeg_post.format-standard`, Force: Playwright, Query pagination, 25 unique URLs |
 | Myanmar Now | ✅ Success | 2025-09-24 | Selector: `ul#posts-container li.post-item`, Content: `div.main-content article#the-post`, Proxy rotation, 2 pages → 8/10 articles (80% success) |
 
 ### Testing Notes:
 - **VOA Burmese**: Successfully extracted articles using the configured selectors. The `.media-block.media-block--t-spac.media-block--contain` selector correctly identifies article items, and `main.container` selector captures the full article content.
 - **BBC Burmese**: Successfully tested with updated selectors and delay ranges. The `div[data-testid="curation-grid-normal"] ul li` selector works with current BBC site structure, `main` content selector captures articles, and 1-3 second delay range handles JS-heavy content appropriately.
-- **RFA Burmese**: Successfully tested with advanced click pagination! Archive selector works perfectly, forced Playwright engine handles site restrictions. **Click pagination fully implemented**: 3 clicks on load more button → 40 unique articles collected and processed with 100% success rate (40/40 articles saved). Complete pipeline working from URL collection to article extraction.
+- **RFA Burmese**: Successfully tested with advanced load more pagination! Archive selector works perfectly, forced Playwright engine handles site restrictions. **Load more pagination fully implemented**: 3 clicks on load more button → 40 unique articles collected and processed with 100% success rate (40/40 articles saved). Complete pipeline working from URL collection to article extraction.
 - **Irrawaddy**: Successfully tested with forced Playwright engine and query parameter pagination (`?page={n}`). Archive selector `article.jeg_post.format-standard` works perfectly, automatic deduplication removes overlapping content between pages (31→25 unique URLs), and 3-5 second delays handle JS-heavy content appropriately.
 - **Myanmar Now**: Successfully tested with proxy rotation and query parameter pagination (`page/{n}/`). Archive selector `ul#posts-container li.post-item` works perfectly, content selector `div.main-content article#the-post` captures articles effectively. Processed 2 pages → 10 URLs → 8/10 articles successfully extracted (80% success rate due to proxy limitations). Automatic proxy failover working correctly.
 

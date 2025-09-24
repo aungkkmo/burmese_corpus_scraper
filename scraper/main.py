@@ -273,11 +273,11 @@ class BurmeseCorpusScraper:
                     self.logger.warning("Reached safety limit of 1000 pages")
                     break
         
-        elif pagination_type == 'click':
-            # Click-based pagination (load more button)
-            # For click pagination, we only return the base URL
-            # The clicking will happen during page processing
-            self.logger.info(f"Using click pagination with button selector: {pagination_param}")
+        elif pagination_type == 'loadmore':
+            # Load more button pagination
+            # For load more pagination, we only return the base URL
+            # The button clicking will happen during page processing
+            self.logger.info(f"Using load more pagination with button selector: {pagination_param}")
             urls.append(base_url)
         
         elif pagination_type == 'scroll':
@@ -295,12 +295,12 @@ class BurmeseCorpusScraper:
         """Process a single archive page"""
         
         try:
-            # For click pagination, use the special method
-            if pagination_type == 'click' and pagination_param and hasattr(self.crawler, 'get_page_with_pagination'):
-                self.logger.info(f"Processing page with click pagination (max {max_pages} clicks)")
+            # For load more pagination, use the special method
+            if pagination_type == 'loadmore' and pagination_param and hasattr(self.crawler, 'get_page_with_pagination'):
+                self.logger.info(f"Processing page with load more pagination (max {max_pages} button clicks)")
                 content = self.crawler.get_page_with_pagination(archive_url, pagination_param, max_pages or 3)
                 if not content:
-                    self.logger.warning("Click pagination failed, falling back to regular content")
+                    self.logger.warning("Load more pagination failed, falling back to regular content")
                     content = self.crawler.get_page_content(archive_url)
             else:
                 # Get archive page content normally
