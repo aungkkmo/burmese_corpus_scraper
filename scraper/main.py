@@ -70,7 +70,8 @@ class BurmeseCorpusScraper:
                thumbnail_selector: str = None, output_file: str = 'output.jsonl',
                format_type: str = 'ndjson', force_engine: str = None,
                resume: bool = False, max_pages: int = None, urls_file: str = None,
-               skip_archive: bool = False, slug: str = None, resume_page: int = None) -> Dict[str, Any]:
+               skip_archive: bool = False, slug: str = None, resume_page: int = None,
+               pagination_increment: int = 1) -> Dict[str, Any]:
         """
         Main scraping method
         
@@ -163,7 +164,7 @@ class BurmeseCorpusScraper:
                 print("No skip archive mode")
                 # Get archive URLs to process
                 archive_urls = self._get_archive_urls(
-                    archive_url, pagination_type, pagination_param, max_pages, archive_selector, resume_page
+                    archive_url, pagination_type, pagination_param, max_pages, archive_selector, resume_page, pagination_increment
                 )
                 
                 self.logger.info(f"Will process {len(archive_urls)} archive pages")
@@ -232,7 +233,7 @@ class BurmeseCorpusScraper:
         return True
     
     def _get_archive_urls(self, base_url: str, pagination_type: str, 
-                         pagination_param: str = None, max_pages: int = None, archive_selector: str = None, resume_page: int = None) -> List[str]:
+                         pagination_param: str = None, max_pages: int = None, archive_selector: str = None, resume_page: int = None, pagination_increment: int = 1) -> List[str]:
         """Get list of archive URLs to process based on pagination type"""
         
         urls = [base_url]
@@ -253,7 +254,14 @@ class BurmeseCorpusScraper:
                     self.logger.info(f"Generating URLs for {total_pages} pages")
                 
                 for page in range(start_page, total_pages + 1):
-                    param = pagination_param.replace('{n}', str(page))
+                    # Calculate page value based on increment
+                    if pagination_increment == 1:
+                        page_value = page
+                    else:
+                        # For custom increments: page 2 = increment, page 3 = increment*2, etc.
+                        page_value = (page - 1) * pagination_increment
+                    
+                    param = pagination_param.replace('{n}', str(page_value))
                     if param.startswith('?') or param.startswith('&'):
                         next_url = base_url + param
                     else:
@@ -272,7 +280,14 @@ class BurmeseCorpusScraper:
                 max_safety_limit = 1000   # Safety limit to prevent infinite loops
                 
                 while page <= max_safety_limit:
-                    param = pagination_param.replace('{n}', str(page))
+                    # Calculate page value based on increment
+                    if pagination_increment == 1:
+                        page_value = page
+                    else:
+                        # For custom increments: page 2 = increment, page 3 = increment*2, etc.
+                        page_value = (page - 1) * pagination_increment
+                    
+                    param = pagination_param.replace('{n}', str(page_value))
                     if param.startswith('?') or param.startswith('&'):
                         next_url = base_url + param
                     else:
@@ -700,7 +715,8 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                                 urls_file=category_urls_file,
                                 skip_archive=skip_archive,
                                 slug=category_slug,
-                                resume_page=current_resume_page
+                                resume_page=current_resume_page,
+                                pagination_increment=site_config.get('pagination_increment', 1)
                             )
                             
                             if results['success']:

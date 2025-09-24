@@ -14,6 +14,7 @@ defaults:
   force_engine: null # Auto-select engine (requests/playwright/selenium)
   pagination_type: 0 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
   pagination_param: null
+  pagination_increment: 1 # For queryparam: increment between pages (1=1,2,3,4 | 10=1,11,21,31 | 9=0,9,18,27)
 
 # Site configurations
 sites:
@@ -49,6 +50,7 @@ sites:
     content_selector: "main"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
+    pagination_increment: 1 # Standard increment: 1, 2, 3, 4...
     delay: "1,3" # 1 to 3 seconds range for JS-heavy site
     max_pages: null # all pages
     timeout: 45
@@ -141,6 +143,7 @@ sites:
     content_selector: "div.itemBody"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?start={n}"
+    pagination_increment: 9 # Custom increment: 0, 9, 18, 27... (9 items per page)
     delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
