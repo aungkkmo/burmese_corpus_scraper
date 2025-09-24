@@ -21,7 +21,8 @@ from utility.header_rotation import HeaderRotator
 from .utils import (
     is_valid_url, setup_logging, load_existing_ids, 
     validate_selector_format, generate_id, normalize_slug,
-    load_env_config, load_sites_config, get_site_config, get_site_categories
+    load_env_config, load_sites_config, get_site_config, get_site_categories,
+    parse_delay_range
 )
 from .crawler import WebCrawler
 from .extractor import ContentExtractor
@@ -31,7 +32,7 @@ class BurmeseCorpusScraper:
     """Main scraper class"""
     
     def __init__(self, proxy_rotator=None, header_rotator=None, 
-                 delay=1.0, timeout=30, respect_robots=True):
+                 delay=(0.5, 1.0), timeout=30, respect_robots=True):
         self.proxy_rotator = proxy_rotator
         self.header_rotator = header_rotator
         self.delay = delay
@@ -171,7 +172,8 @@ class BurmeseCorpusScraper:
                     
                     page_urls = self._process_archive_page(
                         url, archive_selector, content_selector, 
-                        thumbnail_selector, storage, existing_ids, archive_url, collect_urls=True
+                        thumbnail_selector, storage, existing_ids, archive_url, collect_urls=True,
+                        pagination_type=pagination_type, pagination_param=pagination_param, max_pages=max_pages
                     )
                     
                     if page_urls:
@@ -182,30 +184,11 @@ class BurmeseCorpusScraper:
                         self.logger.warning(f"Failed to process archive page: {url}")
                 
                 # Save URLs to file
-                if urls_file and all_article_urls:
                     self._save_urls_to_file(
                         urls_file, all_article_urls, archive_url, 
                         archive_selector, content_selector
                     )
                 
-                # Choose detail engine for article processing
-                if all_article_urls:
-                    sample_url = all_article_urls[0]
-                    self.detail_engine = self.crawler.choose_detail_engine(
-                        sample_url, content_selector, force_engine
-                    )
-                    
-                    if not self.detail_engine:
-                        self.logger.warning("No working scraping engine found for detail pages, using archive engine")
-                        self.detail_engine = self.archive_engine
-                    
-                    # Set detail engine as current for article processing
-                    self.crawler.current_engine = self.detail_engine
-                    
-                    # Process articles with detail engine
-                    self._process_articles_from_urls(
-                        all_article_urls, content_selector, storage, existing_ids, archive_url
-                    )
             
             # Final statistics
             self.logger.info("Scraping completed")
@@ -290,22 +273,39 @@ class BurmeseCorpusScraper:
                     self.logger.warning("Reached safety limit of 1000 pages")
                     break
         
-        elif pagination_type in ['click', 'scroll']:
-            # For click and scroll, we'd need to use headless browser
-            # For now, just process the first page
-            self.logger.warning(f"Pagination type '{pagination_type}' not fully implemented, processing first page only")
+        elif pagination_type == 'click':
+            # Click-based pagination (load more button)
+            # For click pagination, we only return the base URL
+            # The clicking will happen during page processing
+            self.logger.info(f"Using click pagination with button selector: {pagination_param}")
+            urls.append(base_url)
+        
+        elif pagination_type == 'scroll':
+            # Scroll-based pagination (infinite scroll)
+            self.logger.warning("Scroll pagination not yet implemented, processing first page only")
         
         return urls
     
     def _process_archive_page(self, archive_url: str, archive_selector: str, 
                             content_selector: str, thumbnail_selector: str,
                             storage: DataStorage, existing_ids: set, 
-                            original_archive_url: str, collect_urls: bool = False) -> List[str]:
+                            original_archive_url: str, collect_urls: bool = False,
+                            pagination_type: str = 'none', pagination_param: str = None, 
+                            max_pages: int = None) -> List[str]:
         """Process a single archive page"""
         
         try:
-            # Get archive page content
-            content = self.crawler.get_page_content(archive_url)
+            # For click pagination, use the special method
+            if pagination_type == 'click' and pagination_param and hasattr(self.crawler, 'get_page_with_pagination'):
+                self.logger.info(f"Processing page with click pagination (max {max_pages} clicks)")
+                content = self.crawler.get_page_with_pagination(archive_url, pagination_param, max_pages or 3)
+                if not content:
+                    self.logger.warning("Click pagination failed, falling back to regular content")
+                    content = self.crawler.get_page_content(archive_url)
+            else:
+                # Get archive page content normally
+                content = self.crawler.get_page_content(archive_url)
+            
             if not content:
                 self.logger.error(f"Could not fetch archive page: {archive_url}")
                 return []
@@ -415,18 +415,30 @@ class BurmeseCorpusScraper:
                           archive_url: str, archive_selector: str, content_selector: str):
         """Save URLs to file for later use"""
         try:
+            # Deduplicate URLs while preserving order
+            unique_urls = []
+            seen_urls = set()
+            for url in urls:
+                if url not in seen_urls:
+                    unique_urls.append(url)
+                    seen_urls.add(url)
+            
+            duplicates_removed = len(urls) - len(unique_urls)
+            if duplicates_removed > 0:
+                self.logger.info(f"Removed {duplicates_removed} duplicate URLs")
+            
             urls_data = {
                 'archive_url': archive_url,
                 'archive_selector': archive_selector,
                 'content_selector': content_selector,
-                'total_urls': len(urls),
-                'urls': urls
+                'total_urls': len(unique_urls),
+                'urls': unique_urls
             }
             
             with open(urls_file, 'w', encoding='utf-8') as f:
                 json.dump(urls_data, f, ensure_ascii=False, indent=2)
             
-            self.logger.info(f"Saved {len(urls)} URLs to {urls_file}")
+            self.logger.info(f"Saved {len(unique_urls)} unique URLs to {urls_file}")
             
         except Exception as e:
             self.logger.error(f"Error saving URLs to file: {e}")
@@ -477,7 +489,7 @@ class BurmeseCorpusScraper:
               type=click.Choice(['ndjson', 'json']), help='Output format')
 @click.option('--force-engine', type=click.Choice(['requests', 'playwright', 'selenium']),
               help='Force specific scraping engine')
-@click.option('--delay', default=1.0, type=float, help='Delay between requests (seconds)')
+@click.option('--delay', default="1.0", type=str, help='Delay between requests (seconds or range like "2,5" or "3 to 6")')
 @click.option('--timeout', default=30, type=int, help='Request timeout (seconds)')
 @click.option('--ignore-robots', is_flag=True, help='Ignore robots.txt')
 @click.option('--resume', is_flag=True, help='Resume from existing output file')
@@ -498,6 +510,16 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
     logger = None  # Will be set up after getting slug
     
     print("=== Burmese Corpus Scraper ===")
+    
+    # Initialize variables
+    slug = None
+    archive_url = None
+    archive_selector = None
+    content_selector = None
+    pagination_type = 'none'
+    pagination_param = None
+    thumbnail_selector = 'img'
+    env_mode = False
     
     # Try to load multi-site configuration first
     sites_config = load_sites_config()
@@ -568,7 +590,7 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                     resume = site_config['resume']
                 
                 # Update delay and timeout from site config if not provided via CLI
-                if delay == 1.0 and site_config.get('delay'):  # Default delay
+                if delay == "1.0" and site_config.get('delay'):  # Default delay
                     delay = site_config['delay']
                 
                 if timeout == 30 and site_config.get('timeout'):  # Default timeout
@@ -628,7 +650,7 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                 resume = env_config['resume']
             
             # Update delay and timeout from env if not provided via CLI
-            if delay == 1.0 and env_config.get('delay'):  # Default delay
+            if delay == "1.0" and env_config.get('delay'):  # Default delay
                 delay = env_config['delay']
             
             if timeout == 30 and env_config.get('timeout'):  # Default timeout
@@ -636,14 +658,13 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
             
             print(f"✅ Using .env configuration for '{slug}'")
             env_mode = True
-        else:
-            env_mode = False
-    else:
-        env_mode = False
+        # If no .env config found and env_mode is already False, keep it False
+        # If env_mode is already True (from sites.yaml), don't override it
     
     # Get user input (skip if using env config)
     try:
         if not env_mode:
+            print("DEBUG: Entering manual input mode")
             # Slug for file naming
             while True:
                 slug_input = input("Enter project slug (will be used for file naming, e.g., 'Irrawaddy News' -> 'irrawaddy_news'): ").strip()
@@ -690,7 +711,8 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
             
             # Thumbnail - automatically include, find image in archive item
             thumbnail_selector = "img"  # Default to find any image in archive item
-        
+        else:
+            print("DEBUG: Skipping manual input, using config mode")
         # Create directories if they don't exist
         Path("logs").mkdir(exist_ok=True)
         Path("data/raw").mkdir(parents=True, exist_ok=True)
@@ -714,9 +736,9 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
         logger.info(f"Log file: {log}")
         logger.info(f"URLs file: {urls_file}")
         
-        # Skip prompts if skip-archive mode
+        # Handle different input modes
         if skip_archive:
-            # Check if URLs file exists
+            # Skip-archive mode: load from URLs file
             if not Path(urls_file).exists():
                 print(f"❌ URLs file {urls_file} not found. Cannot skip archive scraping.")
                 print("Run without --skip-archive first to generate the URLs file.")
@@ -734,6 +756,10 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
             thumbnail_selector = "img"
             
             logger.info(f"Skip-archive mode: loaded {len(urls_data.get('urls', []))} URLs from {urls_file}")
+            
+        elif env_mode:
+            # Config mode: variables already set from sites.yaml or .env
+            logger.info(f"Config mode: using configuration for {slug}")
             
         else:
             # Archive URL
@@ -773,6 +799,7 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
             
             # Thumbnail - automatically include, find image in archive item
             thumbnail_selector = "img"  # Default to find any image in archive item
+
         
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
@@ -790,11 +817,15 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
     logger.info("Initializing header rotation...")
     header_rotator = HeaderRotator()
     
+    # Parse delay range
+    delay_range = parse_delay_range(delay)
+    logger.info(f"Using delay range: {delay_range[0]:.1f} to {delay_range[1]:.1f} seconds")
+    
     # Initialize scraper
     scraper = BurmeseCorpusScraper(
         proxy_rotator=proxy_rotator,
         header_rotator=header_rotator,
-        delay=delay,
+        delay=delay_range,
         timeout=timeout,
         respect_robots=not ignore_robots
     )

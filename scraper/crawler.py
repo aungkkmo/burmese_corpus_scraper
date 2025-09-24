@@ -37,7 +37,7 @@ from .utils import normalize_url, extract_domain, is_css_selector
 class ScrapingEngine:
     """Base class for scraping engines"""
     
-    def __init__(self, proxy_rotator=None, header_rotator=None, delay=1.0, timeout=30):
+    def __init__(self, proxy_rotator=None, header_rotator=None, delay=(0.5, 1.0), timeout=30):
         self.proxy_rotator = proxy_rotator
         self.header_rotator = header_rotator
         self.delay = delay
@@ -54,7 +54,13 @@ class ScrapingEngine:
     
     def add_delay(self):
         """Add random delay between requests"""
-        if self.delay > 0:
+        if isinstance(self.delay, tuple) and len(self.delay) == 2:
+            min_delay, max_delay = self.delay
+            if max_delay > 0:
+                delay_time = random.uniform(min_delay, max_delay)
+                time.sleep(delay_time)
+        elif self.delay > 0:
+            # Backward compatibility for single delay value
             delay_time = random.uniform(0.5, self.delay)
             time.sleep(delay_time)
 
@@ -191,7 +197,13 @@ class PlaywrightEngine(ScrapingEngine):
             content = await self.page.content()
             
             # Add delay
-            if self.delay > 0:
+            if isinstance(self.delay, tuple) and len(self.delay) == 2:
+                min_delay, max_delay = self.delay
+                if max_delay > 0:
+                    delay_time = random.uniform(min_delay, max_delay)
+                    await asyncio.sleep(delay_time)
+            elif self.delay > 0:
+                # Backward compatibility for single delay value
                 await asyncio.sleep(random.uniform(0.5, self.delay))
             
             return content
@@ -208,7 +220,13 @@ class PlaywrightEngine(ScrapingEngine):
                 
                 content = await self.page.content()
                 
-                if self.delay > 0:
+                if isinstance(self.delay, tuple) and len(self.delay) == 2:
+                    min_delay, max_delay = self.delay
+                    if max_delay > 0:
+                        delay_time = random.uniform(min_delay, max_delay)
+                        await asyncio.sleep(delay_time)
+                elif self.delay > 0:
+                    # Backward compatibility for single delay value
                     await asyncio.sleep(random.uniform(0.5, self.delay))
                 
                 self.logger.info(f"Visible browser succeeded for {url}")
@@ -442,7 +460,7 @@ class WebCrawler:
     """Main web crawler that manages different engines"""
     
     def __init__(self, proxy_rotator=None, header_rotator=None, 
-                 delay=1.0, timeout=30, respect_robots=True):
+                 delay=(0.5, 1.0), timeout=30, respect_robots=True):
         self.proxy_rotator = proxy_rotator
         self.header_rotator = header_rotator
         self.delay = delay
@@ -644,6 +662,99 @@ class WebCrawler:
             return None
         
         return self.current_engine.get_page(url)
+    
+    def get_page_with_pagination(self, url: str, button_selector: str, max_pages: int) -> Optional[str]:
+        """Get page content with click pagination (load more button)"""
+        if not self.current_engine:
+            self.logger.error("No engine selected")
+            return None
+        
+        # Only works with Playwright engine
+        if not hasattr(self.current_engine, 'page') or not self.current_engine.page:
+            self.logger.warning("Click pagination requires Playwright engine")
+            return self.get_page_content(url)  # Fallback to regular content
+        
+        try:
+            import asyncio
+            import random
+            
+            async def click_pagination():
+                # Use the EXISTING page from current engine
+                page = self.current_engine.page
+                
+                # Make sure we're on the right page
+                current_url = page.url
+                if current_url != url:
+                    await page.goto(url, timeout=self.timeout * 1000)
+                    await page.wait_for_load_state('networkidle')
+                
+                clicks_performed = 0
+                max_clicks = max_pages - 1 if max_pages else 10  # Default to 10 clicks
+                
+                # Simple click loop as requested
+                while clicks_performed < max_clicks:
+                    try:
+                        # Check if load more button exists
+                        button_exists = await page.evaluate(f"""
+                            () => {{
+                                const btn = document.querySelector("{button_selector}");
+                                return btn !== null && btn.offsetParent !== null;
+                            }}
+                        """)
+                        
+                        if not button_exists:
+                            self.logger.info(f"No more load more button found after {clicks_performed} clicks")
+                            break
+                        
+                        self.logger.info(f"Clicking load more button (click {clicks_performed + 1})")
+                        
+                        # Click the button
+                        await page.evaluate(f"""
+                            () => {{
+                                const btn = document.querySelector("{button_selector}");
+                                if (btn) {{
+                                    btn.click();
+                                }}
+                            }}
+                        """)
+                        
+                        clicks_performed += 1
+                        
+                        # Wait 1 second as requested
+                        await page.wait_for_timeout(1000)
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Error clicking load more button: {e}")
+                        break
+                
+                self.logger.info(f"Completed pagination with {clicks_performed} clicks")
+                
+                # Get final content
+                return await page.content()
+            
+            # Run the async function using existing event loop
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is already running, we need to use a different approach
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(asyncio.run, click_pagination())
+                        content = future.result(timeout=300)  # 5 minute timeout
+                    return content
+                else:
+                    # Loop exists but not running
+                    content = loop.run_until_complete(click_pagination())
+                    return content
+            except RuntimeError:
+                # No event loop exists, create one
+                content = asyncio.run(click_pagination())
+                return content
+                
+        except Exception as e:
+            self.logger.error(f"Error during click pagination: {e}")
+            return self.get_page_content(url)  # Fallback to regular content
     
     def find_elements(self, content: str, selector: str) -> List:
         """Find elements using current engine"""

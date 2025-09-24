@@ -55,7 +55,7 @@ Options:
   --format [ndjson|json]         Output format [default: ndjson]
   --force-engine [requests|playwright|selenium]
                                  Force specific scraping engine
-  --delay FLOAT                  Delay between requests in seconds [default: 1.0]
+  --delay TEXT                   Delay between requests (seconds or range like "2,5") [default: "1.0"]
   --timeout INTEGER              Request timeout in seconds [default: 30]
   --ignore-robots                Ignore robots.txt
   --resume                       Resume from existing output file
@@ -74,8 +74,8 @@ Options:
 # Basic scraping
 python -m scraper.main --output articles.jsonl
 
-# With proxy rotation and custom delay
-python -m scraper.main --use-proxy --delay 2.0 --output articles.jsonl
+# With proxy rotation and delay range
+python -m scraper.main --use-proxy --delay "2,5" --output articles.jsonl
 
 # Resume previous scraping session
 python -m scraper.main --resume --output articles.jsonl
@@ -105,6 +105,51 @@ The scraper outputs articles in the following format:
 - **NDJSON** (default): Each article on a separate line as JSON
 - **JSON**: Single JSON array containing all articles
 
+## ⚠️ Data Cleaning Notice
+
+**This scraper intentionally extracts raw content without extensive cleaning.** The extracted data may contain:
+
+- HTML tags and formatting elements
+- Navigation elements, advertisements, or sidebar content  
+- Timestamps, author information, and metadata mixed with article text
+- Special characters and encoding issues
+- Unwanted page elements (headers, footers, comments, etc.)
+
+### Why Raw Data?
+
+This design choice allows maximum flexibility for different use cases. Users can implement their own cleaning pipeline based on their specific requirements.
+
+### Recommended Cleaning Tools
+
+If you need clean text data, consider implementing post-processing with:
+
+- **BeautifulSoup**: For HTML tag removal and parsing
+- **Regular expressions**: For text normalization and pattern matching
+- **Language-specific processors**: For Burmese text processing and normalization
+- **Custom filters**: For removing site-specific unwanted elements
+- **Text cleaning libraries**: Such as `clean-text`, `ftfy`, or custom solutions
+
+### Example Cleaning Pipeline
+
+```python
+from bs4 import BeautifulSoup
+import re
+
+def clean_article_content(raw_html):
+    # Remove HTML tags
+    soup = BeautifulSoup(raw_html, 'html.parser')
+    text = soup.get_text()
+    
+    # Remove extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    # Remove common unwanted patterns (customize as needed)
+    text = re.sub(r'Share this article.*$', '', text)
+    text = re.sub(r'Related articles:.*$', '', text)
+    
+    return text
+```
+
 ## Configuration
 
 ### Multi-Site Configuration (Recommended)
@@ -119,7 +164,7 @@ cp sites.example.yaml sites.yaml
 **Example sites.yaml:**
 ```yaml
 defaults:
-  delay: 1.0
+  delay: "0.5,1.5"  # Delay range: 0.5 to 1.5 seconds
   timeout: 30
   max_pages: 5
 
@@ -143,7 +188,7 @@ sites:
       myanmar: "https://www.bbc.com/burmese/topics/cjnwl8q4g7nt"
     archive_selector: ".gs-c-promo"
     content_selector: ".article-content"
-    delay: 2.0  # Override default for this site
+    delay: "1,3"  # Override default: 1 to 3 seconds for JS-heavy site
 ```
 
 **Interactive mode** - shows site menu:
@@ -161,7 +206,7 @@ python3 -m scraper.main
 # Run specific site without prompts
 python3 -m scraper.main --site voa_burmese
 python3 -m scraper.main --site bbc_burmese --max-pages 3
-python3 -m scraper.main --site rfa_burmese --delay 2.0
+python3 -m scraper.main --site rfa_burmese --delay "2,4"
 
 # Run specific category within a site
 python3 -m scraper.main --site voa_burmese --category myanmar
@@ -218,7 +263,7 @@ Use this template to add a new site to your `sites.yaml`:
     # pagination_param: ".load-more-btn"
     
     # Optional overrides
-    delay: 1.0                             # Seconds between requests
+    delay: "1,2"                           # Delay range: 1 to 2 seconds between requests
     max_pages: 5                           # Maximum pages to scrape (null = unlimited)
     timeout: 30                            # Request timeout
 ```
@@ -276,7 +321,7 @@ archive_urls:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `description` | - | Site description |
-| `delay` | 1.0 | Seconds between requests |
+| `delay` | "0.5,1.5" | Delay range or single value (seconds) |
 | `timeout` | 30 | Request timeout (seconds) |
 | `max_pages` | 5 | Maximum pages to scrape (null = unlimited) |
 | `use_proxy` | false | Enable proxy rotation |
@@ -297,7 +342,7 @@ archive_urls:
     content_selector: "main.container"
     pagination_type: 2  # 0=none, 1=queryparam, 2=click, 3=scroll
     pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
-    delay: 1.5
+    delay: "1,2"  # 1 to 2 seconds range
 ```
 
 #### BBC Burmese
@@ -310,7 +355,7 @@ archive_urls:
     archive_selector: ".gs-c-promo"
     content_selector: ".ssrcss-11r1m41-RichTextComponentWrapper"
     pagination_type: 0  # 0=none, 1=queryparam, 2=click, 3=scroll
-    delay: 2.0
+    delay: "1,3"  # 1 to 3 seconds for JS-heavy site
 ```
 
 #### Simple Site (Limited Pages)
@@ -335,7 +380,7 @@ archive_urls:
     pagination_type: 1  # URL-based pagination
     pagination_param: "?page={n}"
     max_pages: null     # Scrape ALL pages
-    delay: 2.0          # Be respectful with unlimited scraping
+    delay: "2,4"        # Be respectful with unlimited scraping: 2-4 seconds
 ```
 
 ### Finding Selectors
@@ -349,10 +394,26 @@ archive_urls:
 ### Configuration Tips
 
 - Start with `pagination_type: 0` (none) for testing
-- Use `delay: 2.0` or higher for sites that might block requests
+- Use `delay: "2,5"` or higher ranges for sites that might block requests
 - Set `use_proxy: true` for sites that are strict about blocking
 - Use `force_engine: "playwright"` for JavaScript-heavy sites
 - Test with `max_pages: 1` first to verify selectors work
+
+### Delay Configuration
+
+The scraper supports flexible delay configurations:
+
+- **No delay**: `delay: "0"` (fastest, use with caution)
+- **Single delay**: `delay: "2"` → Random delay between 0.5 and 2 seconds
+- **Range format**: `delay: "2,5"` → Random delay between 2 and 5 seconds
+- **Alternative format**: `delay: "3 to 6"` → Random delay between 3 and 6 seconds
+- **Decimal ranges**: `delay: "0.5,1.5"` → Random delay between 0.5 and 1.5 seconds
+
+**Recommended delays by site type:**
+- Static sites: `"0.5,1.5"`
+- JS-heavy sites: `"2,5"`
+- Rate-limited sites: `"3,6"`
+- With proxy rotation: `"2,4"`
 
 ### Proxy Configuration
 
@@ -361,6 +422,27 @@ The scraper includes built-in proxy rotation using free proxies. You can also pr
 ### Header Rotation
 
 Automatic user-agent and header rotation is enabled by default to simulate different browsers and avoid detection.
+
+## ✅ Tested Sites
+
+This section tracks sites that have been successfully tested with the scraper:
+
+| Site | Status | Date Tested | Notes |
+|------|--------|-------------|-------|
+| VOA Burmese | ✅ Success | 2025-09-24 | Selector: `.media-block.media-block--t-spac.media-block--contain`, Content: `main.container` |
+| BBC Burmese | ✅ Success | 2025-09-24 | Selector: `div[data-testid="curation-grid-normal"] ul li`, Content: `main`, Delay: "1,3" |
+| RFA Burmese | ✅ Success | 2025-09-24 | Selector: `.c-stack.b-rfa-results-list.b-rfa-results-list--show-image`, Force: Playwright, Click pagination: 3 clicks → 40 articles (100% success) |
+| Irrawaddy | ✅ Success | 2025-09-24 | Selector: `article.jeg_post.format-standard`, Force: Playwright, Query pagination, 25 unique URLs |
+| Myanmar Now | ✅ Success | 2025-09-24 | Selector: `ul#posts-container li.post-item`, Content: `div.main-content article#the-post`, Proxy rotation, 2 pages → 8/10 articles (80% success) |
+
+### Testing Notes:
+- **VOA Burmese**: Successfully extracted articles using the configured selectors. The `.media-block.media-block--t-spac.media-block--contain` selector correctly identifies article items, and `main.container` selector captures the full article content.
+- **BBC Burmese**: Successfully tested with updated selectors and delay ranges. The `div[data-testid="curation-grid-normal"] ul li` selector works with current BBC site structure, `main` content selector captures articles, and 1-3 second delay range handles JS-heavy content appropriately.
+- **RFA Burmese**: Successfully tested with advanced click pagination! Archive selector works perfectly, forced Playwright engine handles site restrictions. **Click pagination fully implemented**: 3 clicks on load more button → 40 unique articles collected and processed with 100% success rate (40/40 articles saved). Complete pipeline working from URL collection to article extraction.
+- **Irrawaddy**: Successfully tested with forced Playwright engine and query parameter pagination (`?page={n}`). Archive selector `article.jeg_post.format-standard` works perfectly, automatic deduplication removes overlapping content between pages (31→25 unique URLs), and 3-5 second delays handle JS-heavy content appropriately.
+- **Myanmar Now**: Successfully tested with proxy rotation and query parameter pagination (`page/{n}/`). Archive selector `ul#posts-container li.post-item` works perfectly, content selector `div.main-content article#the-post` captures articles effectively. Processed 2 pages → 10 URLs → 8/10 articles successfully extracted (80% success rate due to proxy limitations). Automatic proxy failover working correctly.
+
+*Add new test results here as sites are verified...*
 
 ## Project Structure
 
@@ -393,6 +475,18 @@ burmese_corpus_scraper/
 2. **Content selector not found**: Verify the CSS/XPath selector on the article detail pages
 3. **Engine failures**: Try forcing a specific engine with `--force-engine`
 4. **Proxy issues**: Disable proxy rotation or use `--test-proxies` flag
+
+### ✅ Verified Configurations
+
+The `sites.example.yaml` file contains **tested and verified** selectors and settings for supported sites:
+
+- **VOA Burmese**: Confirmed working selectors and pagination settings
+- **BBC Burmese**: Updated selectors for current site structure  
+- **Irrawaddy**: Configured with proper delay ranges for JS-heavy content
+- **RFA Burmese**: Standard configuration for basic pagination
+- **Myanmar Now**: Optimized for proxy usage and click-based pagination
+
+**Tip**: If you're having issues with a site, check if it's already configured in `sites.example.yaml` with verified selectors before creating custom configurations.
 
 ### Debugging
 

@@ -138,6 +138,69 @@ def normalize_slug(slug: str) -> str:
     
     return normalized
 
+def parse_delay_range(delay_input) -> tuple:
+    """
+    Parse delay input and return (min_delay, max_delay) tuple
+    
+    Supports:
+    - Single number: "2.5" -> (0.5, 2.5)
+    - Comma-separated range: "2,5" -> (2.0, 5.0)
+    - String range: "3 to 6" -> (3.0, 6.0)
+    - Zero delay: "0" -> (0, 0)
+    
+    Args:
+        delay_input: String, float, or int representing delay
+        
+    Returns:
+        tuple: (min_delay, max_delay)
+    """
+    if delay_input is None:
+        return (0.5, 1.0)  # Default range
+    
+    # Convert to string for parsing
+    delay_str = str(delay_input).strip()
+    
+    # Handle zero delay
+    if delay_str == "0" or delay_str == "0.0":
+        return (0, 0)
+    
+    # Handle comma-separated range: "2,5" or "2.5,4.0"
+    if ',' in delay_str:
+        try:
+            parts = delay_str.split(',')
+            if len(parts) == 2:
+                min_delay = float(parts[0].strip())
+                max_delay = float(parts[1].strip())
+                return (min_delay, max_delay)
+        except ValueError:
+            pass
+    
+    # Handle "X to Y" format: "3 to 6"
+    if ' to ' in delay_str.lower():
+        try:
+            parts = delay_str.lower().split(' to ')
+            if len(parts) == 2:
+                min_delay = float(parts[0].strip())
+                max_delay = float(parts[1].strip())
+                return (min_delay, max_delay)
+        except ValueError:
+            pass
+    
+    # Handle single number: use 0.5 as minimum, input as maximum
+    try:
+        single_delay = float(delay_str)
+        if single_delay <= 0:
+            return (0, 0)
+        elif single_delay < 1.0:
+            return (0.1, single_delay)
+        else:
+            return (0.5, single_delay)
+    except ValueError:
+        pass
+    
+    # Fallback to default
+    return (0.5, 1.0)
+
 def load_sites_config() -> Optional[Dict[str, Any]]:
     """
     Load multi-site configuration from sites.yaml
@@ -302,7 +365,10 @@ def load_env_config() -> Optional[Dict[str, Any]]:
         key = field.lower().replace('scraper_', '')
         
         # Convert string values to appropriate types
-        if key in ['delay', 'timeout']:
+        if key == 'delay':
+            # Handle delay ranges like "2,5" or single values
+            config[key] = value if value else None
+        elif key == 'timeout':
             config[key] = float(value) if value else None
         elif key in ['max_pages']:
             config[key] = int(value) if value and value.isdigit() else None
