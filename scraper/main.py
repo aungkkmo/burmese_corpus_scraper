@@ -277,7 +277,7 @@ class BurmeseCorpusScraper:
                 page = start_page
                 consecutive_empty = 0
                 max_consecutive_empty = 5  # Stop after 5 consecutive empty pages
-                max_safety_limit = 1000   # Safety limit to prevent infinite loops
+                max_safety_limit = 1500   # Safety limit to prevent infinite loops
                 
                 while page <= max_safety_limit:
                     # Calculate page value based on increment
