@@ -52,7 +52,7 @@ sites:
     delay: "1,3" # 1 to 3 seconds range for JS-heavy site
     max_pages: null # all pages
     timeout: 45
-    force_engine: requests # Force requests engine for BBC
+    force_engine: "requests" # Force requests engine for BBC
 
   rfa_burmese:
     name: "RFA Burmese"
@@ -68,7 +68,7 @@ sites:
     pagination_param: "button.c-button.c-button--medium.c-button--primary.my-button"
     delay: "1,3" # 1 to 3 seconds range
     max_pages: null # Scrape all pages (unlimited)
-    force_engine: playwright # Force Playwright for JS-heavy site with restrictions
+    force_engine: "playwright" # Force Playwright for JS-heavy site with restrictions
     name: "The Irrawaddy"
     description: "The Irrawaddy News Magazine"
     slug: "irrawaddy_burmese"
@@ -87,7 +87,7 @@ sites:
     pagination_param: "?page={n}"
     delay: "3,5" # 3 to 5 seconds range for JS-heavy site
     max_pages: null # all pages
-    force_engine: playwright # Force Playwright for JS-heavy site with restrictions
+    force_engine: "playwright" # Force Playwright for JS-heavy site with restrictions
 
   myanmar_now:
     name: "Myanmar Now"
@@ -117,7 +117,7 @@ sites:
     pagination_param: "&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_cur={n}"
     delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: true
-    force_engine: requests
+    force_engine: "requests"
 
 
   foodindustrydirectory:
@@ -136,12 +136,13 @@ sites:
       foodhealth: "https://www.foodindustrydirectory.com.mm/food-industry/food-health.html"
       restaurant: "https://www.foodindustrydirectory.com.mm/food-industry/restaurant.html"
       eventexhibition: "https://www.foodindustrydirectory.com.mm/food-industry/event-exhibition.html"
-    archive_selector: "div.itemList div.catItemBody div.item"
+    archive_selector: "div.item"
     content_selector: "div.itemBody"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?start={n}"
     delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
-    use_proxy: true
+    use_proxy: false
+    force_engine: "requests"
 
 
   duwun_news:
@@ -150,12 +151,13 @@ sites:
     slug: "duwun_news"
     archive_urls:
       news: "https://www.duwun.com.mm/news"
-    archive_selector: "div.layout div.jss71.jss101"
-    content_selector: "div#partial-wrapper-0 div.jss140.jss148.jss7"
+    archive_selector: 'div[style*="margin-top: 10px"] div > a.anchor-link'
+    content_selector: "div#partial-wrapper-0 div:first-child"
     pagination_type: 2 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: ".next_more_btn_gtm button"
-    delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
-    use_proxy: true
+    delay: "1,3" # 1 to 3 seconds for JS-heavy site
+    use_proxy: true  
+    force_engine: "playwright"
 
 
   isec_myanmar:
@@ -164,12 +166,13 @@ sites:
     slug: "isec_myanmar"
     archive_urls:
       blog: "https://www.isecmyanmar.com.mm/resource_categories/blog-post/"
-    archive_selector: "article"
-    content_selector: "article"
+    archive_selector: "article.flex.flex-col.shadow-md.my-4.items-center"
+    content_selector: "article.flex.flex-col.shadow-md.my-4.items-center"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
     delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
-    use_proxy: true
+    use_proxy: false
+    force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 

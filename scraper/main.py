@@ -546,6 +546,108 @@ def main(output, format_type, force_engine, delay, timeout, ignore_robots,
                     for cat_key, cat_url in categories.items():
                         print(f"   {cat_key}: {cat_url}")
                     sys.exit(1)
+            else:
+                # No category specified - check if site has multiple categories
+                categories = get_site_categories(sites_config, site_choice)
+                if categories and len(categories) > 1:
+                    print(f"🔄 No category specified for '{site_choice}'. Running all {len(categories)} categories:")
+                    for cat_key in categories.keys():
+                        print(f"   📂 {cat_key}")
+                    print()
+                    
+                    # Run all categories
+                    all_success = True
+                    total_articles = 0
+                    
+                    for cat_key in categories.keys():
+                        print(f"🚀 Processing category: {cat_key}")
+                        print("=" * 50)
+                        
+                        # Get site config for this category
+                        site_config = get_site_config(sites_config, site_choice, cat_key)
+                        if not site_config:
+                            print(f"❌ Failed to get configuration for {site_choice}/{cat_key}")
+                            all_success = False
+                            continue
+                        
+                        # Set up category-specific paths
+                        category_slug = site_config['slug']
+                        category_output = f"data/raw/{category_slug}.jsonl"
+                        category_log = f"logs/{category_slug}.log"
+                        category_urls_file = f"data/raw/{category_slug}_urls.json"
+                        
+                        # Initialize category-specific scraper
+                        logger = setup_logging(category_log, log_level)
+                        logger.info(f"=== Processing {site_choice}/{cat_key} ===")
+                        
+                        # Initialize rotators for this category
+                        category_proxy_rotator = None
+                        category_header_rotator = None
+                        
+                        if site_config.get('use_proxy', use_proxy):
+                            logger.info("Initializing proxy rotation...")
+                            category_proxy_rotator = ProxyRotator(max_proxies=20)
+                            category_proxy_rotator.create_proxy_pool(test_proxies=test_proxies)
+                        
+                        logger.info("Initializing header rotation...")
+                        category_header_rotator = HeaderRotator()
+                        
+                        # Parse delay range
+                        category_delay = site_config.get('delay', delay)
+                        delay_range = parse_delay_range(category_delay)
+                        logger.info(f"Using delay range: {delay_range[0]:.1f} to {delay_range[1]:.1f} seconds")
+                        
+                        # Initialize scraper for this category
+                        category_scraper = BurmeseCorpusScraper(
+                            proxy_rotator=category_proxy_rotator,
+                            header_rotator=category_header_rotator,
+                            delay=delay_range,
+                            timeout=site_config.get('timeout', timeout),
+                            respect_robots=not ignore_robots
+                        )
+                        
+                        # Run scraper for this category
+                        try:
+                            results = category_scraper.scrape(
+                                archive_url=site_config['archive_url'],
+                                archive_selector=site_config['archive_selector'],
+                                content_selector=site_config['content_selector'],
+                                pagination_type=site_config.get('pagination_type', 'none'),
+                                pagination_param=site_config.get('pagination_param'),
+                                thumbnail_selector=site_config.get('thumbnail_selector', 'img'),
+                                output_file=category_output,
+                                format_type=format_type,
+                                force_engine=site_config.get('force_engine', force_engine),
+                                resume=resume,
+                                max_pages=max_pages,
+                                urls_file=category_urls_file,
+                                skip_archive=skip_archive,
+                                slug=category_slug
+                            )
+                            
+                            if results['success']:
+                                articles_saved = results['stats']['articles_saved']
+                                total_articles += articles_saved
+                                print(f"✅ {cat_key}: {articles_saved} articles saved")
+                            else:
+                                print(f"❌ {cat_key}: {results['error']}")
+                                all_success = False
+                                
+                        except Exception as e:
+                            print(f"❌ {cat_key}: Error - {str(e)}")
+                            all_success = False
+                        
+                        print()
+                    
+                    # Final summary
+                    print("🎉 All categories processing completed!")
+                    print(f"📊 Total articles saved: {total_articles}")
+                    if all_success:
+                        print("✅ All categories completed successfully!")
+                        sys.exit(0)
+                    else:
+                        print("⚠️  Some categories failed. Check logs for details.")
+                        sys.exit(1)
         else:
             # Interactive site selection
             print("Available sites:")

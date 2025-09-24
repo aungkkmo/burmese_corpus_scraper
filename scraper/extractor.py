@@ -80,6 +80,7 @@ class ContentExtractor:
         
         # Extract URL (clean/stripped)
         relative_url = link_element.get('href').strip()
+        print(relative_url)
         article_url = normalize_url(base_url, relative_url)
         
         # Extract title (clean/stripped) - try link text first, then look for title elements
