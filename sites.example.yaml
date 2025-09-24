@@ -92,6 +92,7 @@ sites:
     delay: "3,5" # 3 to 5 seconds range for JS-heavy site
     max_pages: null # all pages
     force_engine: "playwright" # Force Playwright for JS-heavy site with restrictions
+    use_proxy: true
 
   myanmar_now:
     name: "Myanmar Now"
@@ -107,7 +108,7 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "/page/{n}/"
     delay: "2,5" # 2 to 5 seconds for JS-heavy site with proxy
-    use_proxy: false
+    use_proxy: true
     force_engine: "requests"
 
   myanmar_national_portal:
