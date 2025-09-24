@@ -31,35 +31,78 @@ playwright install chromium
 
 ## Usage
 
-Run the scraper with:
+### 🚀 Quick Start with Pre-configured Sites
 
 ```bash
-python -m scraper.main
+# Run all categories for a site (recommended!)
+python3 -m scraper.main --site bbc_burmese --ignore-robots
+
+# Run specific category
+python3 -m scraper.main --site voa_burmese --category news --ignore-robots
+
+# Run with page limits for testing
+python3 -m scraper.main --site irrawaddy_burmese --max-pages 3 --ignore-robots
 ```
 
-The tool will prompt you for the following information:
+### 🆕 Multi-Category Processing
+
+When you don't specify a `--category`, the scraper automatically runs **all available categories** for that site:
+
+```bash
+# This processes ALL categories for BBC Burmese
+python3 -m scraper.main --site bbc_burmese --ignore-robots
+
+# Output example:
+# 🔄 No category specified for 'bbc_burmese'. Running all 6 categories:
+#    📂 earthquake  📂 myanmar  📂 world  📂 article  📂 interview  📂 trade
+# 
+# 🚀 Processing category: earthquake
+# ✅ earthquake: 24 articles saved
+# 🚀 Processing category: myanmar  
+# ✅ myanmar: 18 articles saved
+# ... (continues for all categories)
+```
+
+**Benefits:**
+- ✅ **Complete coverage** - Gets all content from a site
+- ✅ **Organized output** - Each category saved to separate files (`bbc_burmese_earthquake.jsonl`, etc.)
+- ✅ **Progress tracking** - Shows success/failure for each category
+- ✅ **Error resilience** - Failed categories don't stop others
+
+### Manual Configuration Mode
+
+For custom sites, run without arguments for interactive setup:
+
+```bash
+python3 -m scraper.main
+```
+
+The tool will prompt you for:
 
 1. **Archive/List Page URL**: The URL of the category or archive page (not the site root)
 2. **Archive Item Selector**: CSS or XPath selector for article containers on the archive page
 3. **Content Selector**: CSS or XPath selector for the main article content on detail pages
-4. **Pagination Type**: Choose from none/queryparam/click/scroll
+4. **Pagination Type**: Choose from none/queryparam/loadmore/scroll
 5. **Thumbnail Inclusion**: Whether to extract thumbnail images from archive items
 
 ### Command Line Options
 
 ```bash
-python -m scraper.main [OPTIONS]
+python3 -m scraper.main [OPTIONS]
 
 Options:
+  --site TEXT                    Pre-configured site to scrape (e.g., bbc_burmese, voa_burmese)
+  --category TEXT                Specific category to scrape (optional - runs all if not specified)
   -o, --output TEXT              Output file path [default: output.jsonl]
   --format [ndjson|json]         Output format [default: ndjson]
   --force-engine [requests|playwright|selenium]
                                  Force specific scraping engine
   --delay TEXT                   Delay between requests (seconds or range like "2,5") [default: "1.0"]
   --timeout INTEGER              Request timeout in seconds [default: 30]
-  --ignore-robots                Ignore robots.txt
+  --ignore-robots                Ignore robots.txt restrictions
   --resume                       Resume from existing output file
-  --max-pages INTEGER            Maximum pages to scrape
+  --max-pages INTEGER            Maximum pages to scrape per category
+  --skip-archive                 Skip archive scraping, process existing URLs
   --log TEXT                     Log file path
   --log-level [DEBUG|INFO|WARNING|ERROR]
                                  Log level [default: INFO]
@@ -79,6 +122,29 @@ python -m scraper.main --use-proxy --delay "2,5" --output articles.jsonl
 
 # Resume previous scraping session
 python -m scraper.main --resume --output articles.jsonl
+```
+
+### 🔥 Batch Processing Scripts
+
+For processing multiple sites at once, use the provided bash scripts:
+
+```bash
+# Simple script - runs primary category for each site
+./run_all_sites.sh
+
+# Advanced script - runs all categories for all sites
+./run_all_sites_advanced.sh
+
+# Advanced script with page limits (for testing)
+./run_all_sites_advanced.sh 5
+```
+
+**Script Features:**
+- ✅ **Automated processing** of all configured sites
+- ✅ **Progress tracking** with success/failure reporting
+- ✅ **Error resilience** - failed sites don't stop others
+- ✅ **Easy customization** - edit site lists in the scripts
+- ✅ **Full robots.txt bypass** - all sites run with `--ignore-robots`
 
 # Force specific engine with JSON output
 python -m scraper.main --force-engine playwright --format json --output articles.json
@@ -208,15 +274,11 @@ python3 -m scraper.main --site voa_burmese
 python3 -m scraper.main --site bbc_burmese --max-pages 3
 python3 -m scraper.main --site rfa_burmese --delay "2,4"
 
-# Run specific category within a site
-python3 -m scraper.main --site voa_burmese --category myanmar
-python3 -m scraper.main --site irrawaddy --category politics
-python3 -m scraper.main --site bbc_burmese --category world --max-pages 2
+# Run all categories for a site (NEW!)
+python3 -m scraper.main --site bbc_burmese --ignore-robots
 
-# Unlimited scraping (override YAML setting)
-python3 -m scraper.main --site news_unlimited  # Uses max_pages: null from YAML
-python3 -m scraper.main --site simple_news --max-pages 0  # Override to unlimited
-```
+# Run specific category
+python3 -m scraper.main --site voa_burmese --category news
 
 ### Environment File (.env)
 
