@@ -242,7 +242,7 @@ class BurmeseCorpusScraper:
         
         if pagination_type == 'queryparam':
             # Generate URLs with smart stopping for unlimited scraping
-            if max_pages and max_pages > 0:
+            if max_pages is not None and max_pages > 0:
                 # Use specified max_pages - generate all URLs upfront
                 total_pages = max_pages
                 start_page = resume_page if resume_page else 2
