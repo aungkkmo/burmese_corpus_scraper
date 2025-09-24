@@ -5,7 +5,7 @@
 defaults:
   delay: "0.5,1.5" # Default delay range: 0.5 to 1.5 seconds
   timeout: 30
-  max_pages: 5 # Set to null for unlimited scraping
+  max_pages: 0 # Set to null for unlimited scraping
   use_proxy: true
   output_format: ndjson
   resume: false
