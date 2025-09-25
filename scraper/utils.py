@@ -102,18 +102,61 @@ def is_css_selector(selector: str) -> bool:
     return not any(indicator in selector for indicator in xpath_indicators)
 
 def validate_selector_format(selector: str) -> bool:
-    """Basic validation of selector format"""
+    """
+    Enhanced validation of CSS selector format using BeautifulSoup parser
+    
+    Args:
+        selector: CSS selector string to validate
+        
+    Returns:
+        bool: True if selector is valid CSS syntax, False otherwise
+    """
     if not selector or not selector.strip():
         return False
     
-    # Remove whitespace
     selector = selector.strip()
     
-    # Basic checks
+    # Basic length check
     if len(selector) < 1:
         return False
+    
+    # Check for XPath indicators (should be CSS only)
+    xpath_indicators = ['/', 'text()', 'contains(', 'following-sibling', 'preceding-sibling', '@']
+    if any(indicator in selector for indicator in xpath_indicators):
+        # Log warning but don't fail validation - let user decide
+        import logging
+        logger = logging.getLogger('burmese_scraper.utils')
+        logger.warning(f"Selector '{selector}' appears to contain XPath syntax - should be CSS only")
+    
+    # Test with BeautifulSoup parser
+    try:
+        from bs4 import BeautifulSoup
         
-    return True
+        # Create a minimal test HTML document
+        test_html = """
+        <html>
+            <body>
+                <div class="content-right">
+                    <div>
+                        <article>
+                            <h4 class="title">Test</h4>
+                        </article>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        
+        soup = BeautifulSoup(test_html, 'html.parser')
+        
+        # Try to parse the selector - this will raise an exception if invalid
+        soup.select(selector)
+        
+        return True
+        
+    except Exception:
+        # If BeautifulSoup can't parse it, it's not valid CSS
+        return False
 
 def normalize_slug(slug: str) -> str:
     """

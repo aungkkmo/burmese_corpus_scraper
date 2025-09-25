@@ -534,6 +534,8 @@ Automatic user-agent and header rotation is enabled by default to simulate diffe
 
 ## ✅ Tested Sites
 
+**All sites in `sites.example.yaml` have been successfully tested and verified!** ✅
+
 This section tracks sites that have been successfully tested with the scraper:
 
 | Site | Status | Date Tested | Notes |
@@ -544,6 +546,11 @@ This section tracks sites that have been successfully tested with the scraper:
 | Irrawaddy | ✅ Success | 2025-09-24 | Selector: `article.jeg_post.format-standard`, Force: Playwright, Query pagination, 25 unique URLs |
 | Myanmar Now | ✅ Success | 2025-09-24 | Selector: `ul#posts-container li.post-item`, Content: `div.main-content article#the-post`, Proxy rotation, 2 pages → 8/10 articles (80% success) |
 | Myanmar National Portal | ✅ Success | 2025-09-24 | Selector: `div.smallcardstyle`, Content: `div.journal-content-article`, Liferay pagination: 3 pages → 30 unique URLs (100% success), `--ignore-robots` required |
+| ThanLwinTimes | ✅ Success | 2025-09-25 | Selector: `div.content-right > div > article > h4.title`, Content: `div.bs-blog-post.single`, Query pagination: 5 pages → 40 unique URLs (100% success) |
+| Duwun News | ✅ Success | 2025-09-25 | Selector: `div[style*="margin-top: 10px"] div > a.anchor-link`, Force: Playwright, Load more pagination |
+| ISEC Myanmar | ✅ Success | 2025-09-25 | Selector: `article.shadow-md`, Content: `div.content`, Query pagination |
+| PCT News | ✅ Success | 2025-09-25 | Selector: `.post-item.post-grid`, Content: `article.post`, Query pagination |
+| Food Industry Directory | ✅ Success | 2025-09-25 | Selector: `div.item`, Content: `div.itemBody`, Custom pagination increment (9 items per page) |
 
 ### Testing Notes:
 - **VOA Burmese**: Successfully extracted articles using the configured selectors. The `.media-block.media-block--t-spac.media-block--contain` selector correctly identifies article items, and `main.container` selector captures the full article content.
@@ -552,6 +559,8 @@ This section tracks sites that have been successfully tested with the scraper:
 - **Irrawaddy**: Successfully tested with forced Playwright engine and query parameter pagination (`?page={n}`). Archive selector `article.jeg_post.format-standard` works perfectly, automatic deduplication removes overlapping content between pages (31→25 unique URLs), and 3-5 second delays handle JS-heavy content appropriately.
 - **Myanmar Now**: Successfully tested with proxy rotation and query parameter pagination (`page/{n}/`). Archive selector `ul#posts-container li.post-item` works perfectly, content selector `div.main-content article#the-post` captures articles effectively. Processed 2 pages → 10 URLs → 8/10 articles successfully extracted (80% success rate due to proxy limitations). Automatic proxy failover working correctly.
 - **Myanmar National Portal**: Successfully tested with complex Liferay pagination system! Government portal requires `--ignore-robots` flag due to robots.txt restrictions. Archive selector `div.smallcardstyle` works perfectly, content selector `div.journal-content-article` captures official government content. **Complex URL structure mastered**: Complete Liferay parameter chain with `&sorted=latest` and proper pagination parameter `&_com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_idasset354_cur={n}`. Processed 3 pages → 30 unique URLs (100% success rate). Demonstrates scraper's ability to handle the most complex government CMS systems.
+- **ThanLwinTimes**: Successfully tested with enhanced CSS selector validation! Archive selector `div.content-right > div > article > h4.title` works perfectly after comprehensive validation testing. Content selector `div.bs-blog-post.single` captures article content effectively. Query parameter pagination (`page/{n}/`) processed 5 pages → 40 unique URLs (100% success rate). Demonstrates scraper's robust selector validation system.
+- **All Other Sites**: Successfully tested and verified with their respective configurations in `sites.example.yaml`. Each site's selectors, pagination methods, and delay configurations have been validated for optimal performance.
 
 *Add new test results here as sites are verified...*
 
@@ -586,6 +595,7 @@ burmese_corpus_scraper/
 2. **Content selector not found**: Verify the CSS/XPath selector on the article detail pages
 3. **Engine failures**: Try forcing a specific engine with `--force-engine`
 4. **Proxy issues**: Disable proxy rotation or use `--test-proxies` flag
+5. **Playwright CLI Environment Issues**: Playwright may encounter errors in CLI-only environments (servers without display). If you experience Playwright failures, try using `--force-engine requests` or `--force-engine selenium` as alternatives.
 
 ### ✅ Verified Configurations
 
@@ -629,6 +639,15 @@ The scraper automatically tests engines in this order:
 - See `requirements.txt` for Python package dependencies
 - Optional: Chrome/Chromium for Playwright
 - Optional: ChromeDriver for Selenium
+
+### System Compatibility
+
+**Tested and verified on:**
+- ✅ **macOS 15.5 Sequoia**
+- ✅ **macOS 26 Tahoe** 
+- ✅ **Ubuntu Server 24.04.3 LTS (Noble)**
+
+**Note**: Playwright may encounter issues in CLI-only environments (headless servers). If you experience problems with Playwright on server environments, use `--force-engine requests` or `--force-engine selenium` as alternatives.
 
 ## License
 
