@@ -171,10 +171,10 @@ sites:
     archive_urls:
       blog: "https://www.isecmyanmar.com.mm/resource_categories/blog-post/"
     archive_selector: "article > a"
-    content_selector: "div.content"
+    content_selector: "body > div.container > section > article"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
-    delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
+    delay: "3,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
 
