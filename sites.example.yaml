@@ -224,7 +224,7 @@ sites:
     delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
-    #4050 pages on bni
+    #4050 pages on bni 2211 done
 
 
   burmese_shan_news:
