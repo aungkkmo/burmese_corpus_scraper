@@ -201,7 +201,7 @@ sites:
     slug: "burmese_thanlwintimes"
     archive_urls:
       news: "https://burmese.thanlwintimes.com/"
-    archive_selector: "div.content-right > div > article > h4.title"
+    archive_selector: "div.content-right  .bs-blog-post .title > a"
     content_selector: "div.bs-blog-post.single"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
