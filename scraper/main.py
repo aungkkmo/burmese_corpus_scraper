@@ -6,6 +6,7 @@ Main CLI application for the Burmese corpus scraper
 import click
 import json
 import logging
+import math
 import sys
 import time
 from pathlib import Path
@@ -246,8 +247,16 @@ class BurmeseCorpusScraper:
         if pagination_type == 'queryparam':
             # Generate URLs with smart stopping for unlimited scraping
             if max_pages is not None and max_pages > 0:
-                # Use specified max_pages - generate all URLs upfront
-                total_pages = max_pages
+                # Calculate total_pages based on increment type
+                if pagination_increment == 1:
+                    # Standard pagination: max_pages is the actual number of pages
+                    total_pages = max_pages
+                else:
+                    # Increment-based pagination: max_pages is the target page value
+                    # Calculate how many actual pages needed to reach that value
+                    total_pages = math.ceil(max_pages / pagination_increment) + 1
+                
+                
                 start_page = resume_page if resume_page else 2
                 
                 if resume_page:
@@ -264,11 +273,14 @@ class BurmeseCorpusScraper:
                         page_value = (page - 1) * pagination_increment
                     
                     param = pagination_param.replace('{n}', str(page_value))
+                    
+                    print("Param: ", param)
                     if param.startswith('?') or param.startswith('&'):
                         next_url = base_url + param
                     else:
                         next_url = base_url.rstrip('/') + '/' + param.lstrip('/')
                     urls.append(next_url)
+                    print("Next URL: ", next_url)
             else:
                 # Unlimited scraping - generate URLs dynamically with smart stopping
                 start_page = resume_page if resume_page else 2
