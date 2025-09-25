@@ -221,7 +221,7 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
     pagination_increment: 1
-    delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
+    delay: "3,5" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
     #4050 pages on bni 2211 done
