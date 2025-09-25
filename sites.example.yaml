@@ -148,7 +148,7 @@ sites:
     pagination_increment: 9 # Custom increment: 0, 9, 18, 27... (9 items per page)
     delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
-    force_engine: "requests"
+    force_engine: "selenium"
 
   duwun_news:
     name: "Duwun News"
@@ -160,7 +160,7 @@ sites:
     content_selector: "div#partial-wrapper-0 div:first-child"
     pagination_type: 2 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: ".next_more_btn_gtm button"
-    delay: "1,3" # 1 to 3 seconds for JS-heavy site
+    delay: "3,5" # 3 to 5 seconds for JS-heavy site
     use_proxy: true
     force_engine: "playwright"
 
