@@ -103,11 +103,14 @@ class BurmeseCorpusScraper:
         # Initialize storage
         storage = DataStorage(output_file, format_type)
         
-        # Get existing IDs for resume functionality
+        # Get existing IDs for resume functionality or when skipping archive
         existing_ids = set()
-        if resume:
+        if resume or skip_archive:
             existing_ids = storage.get_existing_ids()
-            self.logger.info(f"Resume mode: found {len(existing_ids)} existing articles")
+            if resume:
+                self.logger.info(f"Resume mode: found {len(existing_ids)} existing articles")
+            elif skip_archive:
+                self.logger.info(f"Skip-archive mode: found {len(existing_ids)} existing articles to avoid duplicates")
         
         # Choose scraping engines separately for archive and detail pages
         self.logger.info("Testing and selecting scraping engines...")
