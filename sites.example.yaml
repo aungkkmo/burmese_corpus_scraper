@@ -177,6 +177,22 @@ sites:
     delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
+
+
+  pct_news:
+    name: "PCT News"
+    description: "PCT News"
+    slug: "pct_news"
+    archive_urls:
+      news: "https://pct.com.mm/category/news/"
+    archive_selector: ".post-item.post-grid"
+    content_selector: "article.post"
+    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
+    pagination_param: "page/{n}/"
+    pagination_increment: 1
+    delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
+    use_proxy: false
+    force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 
