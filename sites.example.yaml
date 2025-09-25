@@ -170,7 +170,7 @@ sites:
     slug: "isec_myanmar"
     archive_urls:
       blog: "https://www.isecmyanmar.com.mm/resource_categories/blog-post/"
-    archive_selector: "article.shadow-md"
+    archive_selector: "article > a"
     content_selector: "div.content"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
