@@ -238,7 +238,7 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
     pagination_increment: 1
-    delay: "3,6" # 3 to 6 seconds for respectful scraping
+    delay: "4,6" # 3 to 6 seconds for respectful scraping
     use_proxy: false
     force_engine: "requests"
 # You can add more sites following the same pattern
