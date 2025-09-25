@@ -89,9 +89,9 @@ sites:
     content_selector: "jeg_inner_content"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
-    delay: "3,5" # 3 to 5 seconds range for JS-heavy site
+    delay: "4,7" # 3 to 5 seconds range for JS-heavy site
     max_pages: null # all pages
-    force_engine: "playwright" # Force Playwright for JS-heavy site with restrictions
+    force_engine: "selenium" # Force Playwright for JS-heavy site with restrictions
     use_proxy: true
 
   myanmar_now:
@@ -107,9 +107,9 @@ sites:
     content_selector: "div.main-content article#the-post"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "/page/{n}/"
-    delay: "3,7" # 2 to 5 seconds for JS-heavy site with proxy
+    delay: "5,7" # 2 to 5 seconds for JS-heavy site with proxy
     use_proxy: true
-    force_engine: "requests"
+    force_engine: "selenium"
 
   myanmar_national_portal:
     name: "Myanmar National Portal"
