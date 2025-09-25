@@ -208,7 +208,7 @@ sites:
     pagination_increment: 1
     delay: "4,8" # 4 to 8 seconds for JS-heavy site with proxy
     use_proxy: false
-    force_engine: "selenium"
+    force_engine: "requests"
 
   bni_online:
     name: "BNI Online"
@@ -233,7 +233,7 @@ sites:
     slug: "burmese_shan_news"
     archive_urls:
       news: "https://burmese.shannews.org/archives/category/news"
-    archive_selector: ".td-module-title a"
+    archive_selector: ".tdb-block-inner .td-module-title a"
     content_selector: "div.wpb_wrapper"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
