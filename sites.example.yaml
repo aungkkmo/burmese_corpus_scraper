@@ -232,12 +232,12 @@ sites:
     slug: "burmese_shan_news"
     archive_urls:
       news: "https://burmese.shannews.org/archives/category/news"
-    archive_selector: "p.entry-title.td-module-title a"
+    archive_selector: ".td-module-title a"
     content_selector: "div.wpb_wrapper"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
     pagination_increment: 1
-    delay: "3,6" # 2 to 4 seconds for JS-heavy site with proxy
+    delay: "3,6" # 3 to 6 seconds for respectful scraping
     use_proxy: false
     force_engine: "requests"
 # You can add more sites following the same pattern

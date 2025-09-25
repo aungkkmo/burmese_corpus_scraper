@@ -70,17 +70,24 @@ class ContentExtractor:
         """Extract data from a single archive item element"""
         
         # Find the main link
-        link_element = element.find('a')
-        if not link_element or not link_element.get('href'):
-            # Try to find link in children
-            link_element = element.find('a', href=True)
-            if not link_element:
-                self.logger.warning("No link found in archive item")
-                return None
+        link_element = None
+        
+        # Check if the element itself is a link
+        if element.name == 'a' and element.get('href'):
+            link_element = element
+        else:
+            # Look for link inside the element
+            link_element = element.find('a')
+            if not link_element or not link_element.get('href'):
+                # Try to find link in children
+                link_element = element.find('a', href=True)
+        
+        if not link_element:
+            self.logger.warning("No link found in archive item")
+            return None
         
         # Extract URL (clean/stripped)
         relative_url = link_element.get('href').strip()
-        print(relative_url)
         article_url = normalize_url(base_url, relative_url)
         
         # Extract title (clean/stripped) - try link text first, then look for title elements

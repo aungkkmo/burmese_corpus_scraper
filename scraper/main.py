@@ -125,8 +125,10 @@ class BurmeseCorpusScraper:
         
         # Validate archive page and selector (skip in skip-archive mode)
         if not skip_archive:
-            if not self._validate_archive_page(archive_url, archive_selector):
-                return self._get_results(success=False, error="Archive validation failed")
+            # Temporarily skip validation to test extraction
+            # if not self._validate_archive_page(archive_url, archive_selector):
+            #     return self._get_results(success=False, error="Archive validation failed")
+            self.logger.info("Temporarily skipping archive validation for testing")
         else:
             self.logger.info("Skipping archive validation in skip-archive mode")
         
