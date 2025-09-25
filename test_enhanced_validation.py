@@ -22,6 +22,7 @@ def test_selectors():
         ("article h1, article h2", True, "Multiple selectors"),
         ("div[data-testid='content']", True, "Attribute selector"),
         ("ul li:first-child", True, "Pseudo-class selector"),
+        ("p.entry-title.td-module-title a", True, "Specific selector"),
         
         # Invalid selectors
         ("", False, "Empty selector"),
