@@ -132,7 +132,7 @@ sites:
     archive_urls:
       thaifood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/thinland.html"
       chinesefood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/chinese.html"
-      burmesefood: "hhttps://www.foodindustrydirectory.com.mm/food-industry/cuisine/myanmar.html"
+      burmesefood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/myanmar.html"
       koreanfood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/korea.html"
       japanesefood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/japan.html"
       indianfood: "https://www.foodindustrydirectory.com.mm/food-industry/cuisine/india.html"
@@ -146,9 +146,9 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?start={n}"
     pagination_increment: 9 # Custom increment: 0, 9, 18, 27... (9 items per page)
-    delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
+    delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
-    force_engine: "selenium"
+    force_engine: "requests"
 
   duwun_news:
     name: "Duwun News"
