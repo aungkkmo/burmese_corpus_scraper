@@ -216,8 +216,8 @@ sites:
     slug: "bni_online"
     archive_urls:
       news: "https://www.bnionline.net/mm/news"
-    archive_selector: ".card-category.card-category-bottom"
-    content_selector: "div.block-content article"
+    archive_selector: ".region-conditional-stack .card-bottom .card-title a"
+    content_selector: ".video-and-image-condition"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
     pagination_increment: 1
