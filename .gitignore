@@ -89,3 +89,4 @@ geckodriver
 # Config files with sensitive data
 config_local.json
 secrets.json
+libs
