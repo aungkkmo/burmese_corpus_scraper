@@ -1,0 +1,113 @@
+# Cleaning Rules Configuration
+# Similar structure to sites.example.yaml but for data cleaning
+
+defaults:
+  domain: "News"
+  title_removal_keywords: []
+  text_removal_keywords: []
+  feature_image_selector: ""
+  main_text_selector: ""
+
+sites:
+  bbc_burmese:
+    name: "BBC Burmese"
+    domain: "BBC"
+    feature_image_selector: "img.media__image"
+    main_text_selector: "div.story-body__inner p"
+    title_removal_keywords:
+      - "BBC"
+      - "ဘီဘီစီ"
+    text_removal_keywords:
+      - "BBC Burmese"
+      - "ဘီဘီစီ မြန်မာ"
+
+  irrawaddy_burmese:
+    name: "Irrawaddy Burmese"
+    domain: "Irrawaddy"
+    feature_image_selector: "img.wp-post-image"
+    main_text_selector: "div.entry-content p"
+    title_removal_keywords:
+      - "The Irrawaddy"
+      - "ဧရာဝတီ"
+    text_removal_keywords:
+      - "ဧရာဝတီ သတင်းဌာန"
+
+  voa_burmese:
+    name: "VOA Burmese"
+    domain: "VOA"
+    feature_image_selector: "img.img-responsive"
+    main_text_selector: "div.wsw p"
+    title_removal_keywords:
+      - "VOA"
+      - "ဗွီအိုအေ"
+    text_removal_keywords:
+      - "Voice of America"
+      - "အမေရိကန်သံ"
+
+  rfa_burmese:
+    name: "RFA Burmese"
+    domain: "RFA"
+    feature_image_selector: "img.img-responsive"
+    main_text_selector: "div#content-main p"
+    title_removal_keywords:
+      - "RFA"
+      - "အာဇာဒီ"
+    text_removal_keywords:
+      - "Radio Free Asia"
+
+  myanmar_now:
+    name: "Myanmar Now"
+    domain: "Myanmar Now"
+    feature_image_selector: "img.attachment-large"
+    main_text_selector: "div.entry-content p"
+    title_removal_keywords:
+      - "Myanmar Now"
+    text_removal_keywords:
+      - "Myanmar Now"
+
+  duwun_news:
+    name: "Duwun News"
+    domain: "Duwun"
+    feature_image_selector: "img.featured-image"
+    main_text_selector: "div.article-content p"
+    title_removal_keywords:
+      - "Duwun"
+      - "ဒူဝွန်း"
+    text_removal_keywords:
+      - "ဒူဝွန်း သတင်းဌာန"
+
+  burmese_thanlwintimes:
+    name: "Thanlwin Times"
+    domain: "Thanlwin Times"
+    feature_image_selector: "img.wp-post-image"
+    main_text_selector: "div.entry-content p"
+    title_removal_keywords:
+      - "Thanlwin Times"
+      - "သံလွင်တိုင်းမ်"
+    text_removal_keywords:
+      - "သံလွင်တိုင်းမ် သတင်းစာ"
+
+  isec_myanmar:
+    name: "ISEC Myanmar"
+    domain: "ISEC"
+    feature_image_selector: "img.featured-image"
+    main_text_selector: "article p"
+    title_removal_keywords:
+      - "ISEC"
+      - "Eye Centre"
+    text_removal_keywords:
+      - "ISEC Eye Centre Myanmar"
+
+  xinhua_myanmar:
+    name: "Xinhua Myanmar"
+    domain: "Xinhua"
+    feature_image_selector: "img.mvp-post-image"
+    main_text_selector: "#mvp-post-content p"
+    title_removal_keywords:
+      - "Xinhua"
+      - "ဆင်ဟွာ"
+    text_removal_keywords:
+      - "Xinhua Myanmar"
+      - "ဆင်ဟွာ သတင်းဌာန"
+
+# Add more sites as needed following the same pattern
