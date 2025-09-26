@@ -241,6 +241,28 @@ sites:
     delay: "4,6" # 3 to 6 seconds for respectful scraping
     use_proxy: false
     force_engine: "requests"
+
+  xinhua_myanmar:
+    name: "Xinhua Myanmar"
+    description: "Xinhua Myanmar News"
+    slug: "xinhua_myanmar"
+    archive_urls:
+      myanmar: "https://xinhuamyanmar.com/news/myanmar/"
+      china: "https://xinhuamyanmar.com/news/china/"
+      cnmm: "https://xinhuamyanmar.com/mm-cn/"
+      enmm: "https://xinhuamyanmar.com/mm-en/"
+      sino_myanmar: "https://xinhuamyanmar.com/sino-myanmar/"
+      asean: "https://xinhuamyanmar.com/asean/"
+      world: "https://xinhuamyanmar.com/world/"
+      business: "https://xinhuamyanmar.com/business/"
+    archive_selector: "li.mvp-blog-story-wrap.left.relative.infinite-post a"
+    content_selector: "#mvp-post-content"
+    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
+    pagination_param: "page/{n}/"
+    pagination_increment: 1
+    delay: "1,3" # 3 to 6 seconds for respectful scraping
+    use_proxy: false
+    force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 
