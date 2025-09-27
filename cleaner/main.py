@@ -10,6 +10,8 @@ import hashlib
 import os
 import re
 import argparse
+import html
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
 import logging
@@ -85,14 +87,17 @@ class DataCleaner:
             if keyword:
                 title = title.replace(keyword, '')
         
-        # 3. Apply cleaning functions
+        # 3. Clean Unicode control characters and HTML entities
+        title = self.clean_unicode_and_html_entities(title)
+        
+        # 4. Apply cleaning functions
         title = self.clean_xinhua_content(title)
         title = self.clean_references_section(title)
         title = self.clean_escaped_quotes(title)
         title = self.clean_botupload_lines(title)
         title = self.clean_continuous_dashes(title)
         
-        # 4. Normalize whitespace
+        # 5. Normalize whitespace
         title = re.sub(r'\s+', ' ', title).strip()
         
         return title
@@ -136,6 +141,70 @@ class DataCleaner:
         
         return text
     
+    def remove_unwanted_elements(self, soup: BeautifulSoup, removal_classes: List[str]) -> None:
+        """Remove unwanted elements by CSS class names"""
+        if not removal_classes:
+            return
+        
+        for class_name in removal_classes:
+            if not class_name:
+                continue
+            
+            # Remove elements with exact class match
+            elements = soup.find_all(class_=class_name)
+            for element in elements:
+                element.decompose()
+            
+            # Also remove elements where the class is part of a multi-class attribute
+            elements = soup.find_all(class_=lambda x: x and class_name in x)
+            for element in elements:
+                element.decompose()
+            
+            # Remove elements by CSS selector (handles compound classes)
+            try:
+                elements = soup.select(f'.{class_name}')
+                for element in elements:
+                    element.decompose()
+            except Exception:
+                # Skip invalid CSS selectors
+                pass
+            
+            # Also try to remove by ID if the class name could be an ID
+            try:
+                elements = soup.select(f'#{class_name}')
+                for element in elements:
+                    element.decompose()
+            except Exception:
+                pass
+            
+            # Remove elements by partial class name match (for dynamic classes)
+            elements = soup.find_all(attrs={'class': lambda x: x and any(class_name in cls for cls in x)})
+            for element in elements:
+                element.decompose()
+        
+        # Remove common unwanted elements by tag and attributes
+        unwanted_selectors = [
+            'script', 'style', 'noscript',  # Scripts and styles
+            '[role="banner"]', '[role="navigation"]', '[role="complementary"]',  # ARIA roles
+            '[data-ad]', '[data-advertisement]',  # Ad-related data attributes
+            '.ad', '.ads', '.advertisement', '.banner', '.promo',  # Common ad classes
+            '.social', '.share', '.sharing', '.social-share',  # Social sharing
+            '.comment', '.comments', '.comment-section',  # Comments
+            '.related', '.related-posts', '.related-articles',  # Related content
+            '.sidebar', '.widget', '.widgets',  # Sidebars and widgets
+            '.navigation', '.nav', '.menu', '.breadcrumb',  # Navigation
+            '.header', '.footer',  # Header and footer
+            '.popup', '.modal', '.overlay',  # Popups and modals
+        ]
+        
+        for selector in unwanted_selectors:
+            try:
+                elements = soup.select(selector)
+                for element in elements:
+                    element.decompose()
+            except Exception:
+                continue
+
     def extract_with_selectors(self, html_content: str, site_config: Dict[str, Any], base_url: str = '') -> Tuple[str, str]:
         """Extract content using CSS selectors and format images"""
         if not html_content:
@@ -143,6 +212,10 @@ class DataCleaner:
         
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Remove unwanted elements by class names first
+            removal_classes = site_config.get('removal_classes', [])
+            self.remove_unwanted_elements(soup, removal_classes)
             
             # Extract feature image
             feature_image_url = ''
@@ -219,9 +292,10 @@ class DataCleaner:
         cleaned_text = self.clean_text(extracted_text, site_config.get('text_removal_keywords', []))
         
         # Combine feature image + text
-        final_text = ''
+        
+        final_text = cleaned_title + ' '
         if feature_image_url:
-            final_text += f'[IMAGE : {feature_image_url}] '
+            final_text += f'[IMAGE : {feature_image_url}] ' 
         final_text += cleaned_text
         
         # Generate MD5 ID
@@ -278,7 +352,8 @@ class DataCleaner:
                                 title_len = len(cleaned_item.get('title', ''))
                                 title_content = cleaned_item.get('title', '')[:100]  # First 100 chars of title
                                 has_myanmar = self.has_myanmar_characters(cleaned_item.get('text', '')) or self.has_myanmar_characters(cleaned_item.get('title', ''))
-                                logger.debug(f"Rejected item {item_id}: text_len={text_len}, title_len={title_len}, has_myanmar={has_myanmar}")
+                                word_count = self.count_words_myanmar(cleaned_item.get('text', ''))
+                                logger.debug(f"Rejected item {item_id}: text_len={text_len}, word_count={word_count}, title_len={title_len}, has_myanmar={has_myanmar}")
                                 logger.debug(f"Title content: '{title_content}'")
                             
                         except json.JSONDecodeError as e:
@@ -494,14 +569,8 @@ class DataCleaner:
         # Remove HTML tags completely
         text = re.sub(r'<[^>]+>', '', text)
         
-        # Remove HTML entities
-        html_entities = {
-            '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
-            '&apos;': "'", '&copy;': '©', '&reg;': '®', '&trade;': '™',
-            '&#39;': "'", '&#34;': '"', '&#8217;': "'", '&#8220;': '"', '&#8221;': '"'
-        }
-        for entity, replacement in html_entities.items():
-            text = text.replace(entity, replacement)
+        # Clean Unicode control characters and HTML entities
+        text = self.clean_unicode_and_html_entities(text)
         
         # Remove navigation and menu patterns
         nav_patterns = [
@@ -563,10 +632,90 @@ class DataCleaner:
         
         return text.strip()
     
+    def clean_unicode_and_html_entities(self, text: str) -> str:
+        """Clean Unicode control characters and HTML entities"""
+        if not text:
+            return text
+        
+        # First decode HTML entities
+        text = html.unescape(text)
+        
+        # Remove Unicode control characters and format characters
+        # U+200E (Left-to-Right Mark), U+200F (Right-to-Left Mark)
+        # U+202A-U+202E (Directional formatting characters)
+        # U+2060 (Word Joiner), U+FEFF (Zero Width No-Break Space/BOM)
+        control_chars = [
+            '\u200E',  # Left-to-Right Mark
+            '\u200F',  # Right-to-Left Mark
+            '\u202A',  # Left-to-Right Embedding
+            '\u202B',  # Right-to-Left Embedding
+            '\u202C',  # Pop Directional Formatting
+            '\u202D',  # Left-to-Right Override
+            '\u202E',  # Right-to-Left Override
+            '\u2060',  # Word Joiner
+            '\uFEFF',  # Zero Width No-Break Space (BOM)
+            '\u00AD',  # Soft Hyphen
+            '\u200B',  # Zero Width Space
+            '\u200C',  # Zero Width Non-Joiner
+            '\u200D',  # Zero Width Joiner
+            '\u2028',  # Line Separator
+            '\u2029',  # Paragraph Separator
+        ]
+        
+        for char in control_chars:
+            text = text.replace(char, '')
+        
+        # Remove other Unicode control characters using unicodedata
+        text = ''.join(char for char in text if unicodedata.category(char) not in ['Cc', 'Cf', 'Cs', 'Co', 'Cn'])
+        
+        # Convert non-breaking space and other special spaces to regular space
+        special_spaces = [
+            '\xa0',    # Non-breaking space
+            '\u2000',  # En quad
+            '\u2001',  # Em quad
+            '\u2002',  # En space
+            '\u2003',  # Em space
+            '\u2004',  # Three-per-em space
+            '\u2005',  # Four-per-em space
+            '\u2006',  # Six-per-em space
+            '\u2007',  # Figure space
+            '\u2008',  # Punctuation space
+            '\u2009',  # Thin space
+            '\u200A',  # Hair space
+            '\u3000',  # Ideographic space
+        ]
+        
+        for space_char in special_spaces:
+            text = text.replace(space_char, ' ')
+        
+        # Additional HTML entity cleanup (extended list)
+        html_entities = {
+            '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+            '&apos;': "'", '&copy;': '©', '&reg;': '®', '&trade;': '™',
+            '&#39;': "'", '&#34;': '"', '&#8217;': "'", '&#8220;': '"', '&#8221;': '"',
+            '&#8216;': "'", '&#8218;': "'", '&#8222;': '"', '&#8230;': '...',
+            '&#8211;': '–', '&#8212;': '—', '&#8226;': '•', '&#8482;': '™',
+            '&#169;': '©', '&#174;': '®', '&#8364;': '€', '&#163;': '£',
+            '&#8594;': '→', '&#8592;': '←', '&#8593;': '↑', '&#8595;': '↓',
+            '&mdash;': '—', '&ndash;': '–', '&ldquo;': '"', '&rdquo;': '"',
+            '&lsquo;': "'", '&rsquo;': "'", '&hellip;': '...', '&bull;': '•',
+        }
+        
+        for entity, replacement in html_entities.items():
+            text = text.replace(entity, replacement)
+        
+        # Remove any remaining HTML entities using regex
+        text = re.sub(r'&#?\w+;', '', text)
+        
+        return text
+
     def normalize_text_formatting(self, text: str) -> str:
         """Normalize text formatting and remove special symbols"""
         if not text:
             return text
+        
+        # First clean Unicode control characters and HTML entities
+        text = self.clean_unicode_and_html_entities(text)
         
         # Remove emojis and artistic symbols
         # Unicode ranges for emojis and symbols
@@ -922,45 +1071,18 @@ class DataCleaner:
         if not has_myanmar_title and not has_myanmar_text:
             return False
         
-        # Use word count instead of character count for better quality assessment
-        word_count = self.count_words_myanmar(text)
-        if word_count < 200:  # 200 words minimum instead of 1000 characters
+        if not text.strip():
             return False
         
-        # Clean the text for assessment (but be more lenient in other ways)
-        cleaned_text = self.clean_xinhua_content(text)
-        
-        if not cleaned_text.strip():
+        # Check word count using the proper method
+        word_count = len(text)
+        if word_count < 1000:  # Reduced from 150 to 100 words minimum for better coverage
             return False
         
-        # After cleaning, check word count again
-        cleaned_word_count = self.count_words_myanmar(cleaned_text)
-        if cleaned_word_count < 150:  # 150 words minimum after cleaning
-            return False
-        
-        # Remove "Unicode" prefix and everything before it (common in scraped content)
-        unicode_index = cleaned_text.find('Unicode')
-        if unicode_index != -1:
-            cleaned_text = cleaned_text[unicode_index + len('Unicode'):].lstrip()
-            final_word_count = self.count_words_myanmar(cleaned_text)
-            if final_word_count < 100:
-                return False
-        
-        # Remove Zawgyi separators and check remaining content
-        separators = ['ZG ', 'Zawgyi ', 'ZAWGYI', '[Zawgyi]', 'ZawGyi']
-        for sep in separators:
-            sep_index = cleaned_text.find(sep)
-            if sep_index != -1:
-                cleaned_text = cleaned_text[:sep_index]
-                break
-        
-        # Final check after all cleaning - use word count
-        final_word_count = self.count_words_myanmar(cleaned_text.strip())
-        if final_word_count < 100:  # 100 words minimum after all cleaning
-            return False
-        
-        # Only check for severe content quality issues (more lenient)
-        if not self.detect_severe_content_issues(cleaned_text):
+      
+      # Only check for severe content quality issues (more lenient)
+        if not self.detect_severe_content_issues(text):
+            print("Severe content quality issues")
             return False
         
         return True

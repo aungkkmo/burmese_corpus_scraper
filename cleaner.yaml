@@ -1,5 +1,12 @@
 # Cleaning Rules Configuration
 # Similar structure to sites.example.yaml but for data cleaning
+#
+# Fields explanation:
+# - feature_image_selector: CSS selector for extracting featured images
+# - main_text_selector: CSS selector for extracting main article text
+# - title_removal_keywords: Keywords to remove from article titles
+# - text_removal_keywords: Keywords to remove from article text
+# - removal_classes: CSS class names of elements to remove (navigation, ads, etc.)
 
 defaults:
   domain: "News"
@@ -7,6 +14,7 @@ defaults:
   text_removal_keywords: []
   feature_image_selector: ""
   main_text_selector: ""
+  removal_classes: []
 
 sites:
   bbc_burmese:
@@ -14,6 +22,22 @@ sites:
     domain: "BBC"
     feature_image_selector: "img.media__image"
     main_text_selector: "div.story-body__inner p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-stories"
+      - "comments"
+      - "comment-section"
+      - "breadcrumb"
+      - "menu"
+      - "promo"
+      - "banner"
     title_removal_keywords:
       - "BBC"
       - "ဘီဘီစီ"
@@ -26,6 +50,23 @@ sites:
     domain: "Irrawaddy"
     feature_image_selector: "img.wp-post-image"
     main_text_selector: "div.entry-content p"
+    removal_classes:
+      - "widget"
+      - "sidebar"
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-posts"
+      - "comments"
+      - "wp-block-group"
+      - "breadcrumb"
+      - "menu"
+      - "author-bio"
+      - "post-navigation"
     title_removal_keywords:
       - "The Irrawaddy"
       - "ဧရာဝတီ"
@@ -37,6 +78,24 @@ sites:
     domain: "VOA"
     feature_image_selector: "img.img-responsive"
     main_text_selector: "div.wsw p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-media"
+      - "social-share"
+      - "related-content"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "promo"
+      - "banner"
+      - "newsletter"
+      - "subscription"
     title_removal_keywords:
       - "VOA"
       - "ဗွီအိုအေ"
@@ -49,6 +108,23 @@ sites:
     domain: "RFA"
     feature_image_selector: "img.img-responsive"
     main_text_selector: "div#content-main p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-stories"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "author-info"
+      - "tags"
+      - "categories"
+      - "newsletter-signup"
     title_removal_keywords:
       - "RFA"
       - "အာဇာဒီ"
@@ -60,6 +136,25 @@ sites:
     domain: "Myanmar Now"
     feature_image_selector: "img.attachment-large"
     main_text_selector: "div.entry-content p"
+    removal_classes:
+      - "widget"
+      - "sidebar"
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-posts"
+      - "comments"
+      - "wp-block-group"
+      - "breadcrumb"
+      - "menu"
+      - "author-bio"
+      - "post-meta"
+      - "tags"
+      - "categories"
     title_removal_keywords:
       - "Myanmar Now"
     text_removal_keywords:
@@ -70,6 +165,25 @@ sites:
     domain: "Duwun"
     feature_image_selector: "img.featured-image"
     main_text_selector: "div.article-content p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-articles"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "author-info"
+      - "tags"
+      - "categories"
+      - "newsletter"
+      - "subscription"
+      - "popup"
     title_removal_keywords:
       - "Duwun"
       - "ဒူဝွန်း"
@@ -81,6 +195,26 @@ sites:
     domain: "Thanlwin Times"
     feature_image_selector: "img.wp-post-image"
     main_text_selector: "div.entry-content p"
+    removal_classes:
+      - "widget"
+      - "sidebar"
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-posts"
+      - "comments"
+      - "wp-block-group"
+      - "breadcrumb"
+      - "menu"
+      - "author-bio"
+      - "post-navigation"
+      - "tags"
+      - "categories"
+      - "meta"
     title_removal_keywords:
       - "Thanlwin Times"
       - "သံလွင်တိုင်းမ်"
@@ -92,22 +226,94 @@ sites:
     domain: "Forum"
     feature_image_selector: "img.featured-image"
     main_text_selector: "article p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-content"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "author-info"
+      - "forum-meta"
+      - "post-meta"
+      - "tags"
+      - "categories"
     title_removal_keywords:
       - "ISEC Eye Centre Myanmar |"
       - " - ISEC Eye Centre Myanmar"
-    text_removal_keywords:
-      - "ISEC Eye Centre Myanmar"
+
 
   xinhua_myanmar:
     name: "Xinhua Myanmar"
     domain: "News"
     feature_image_selector: "img.mvp-post-image"
     main_text_selector: "#mvp-post-content p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-posts"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "author-info"
+      - "tags"
+      - "categories"
+      - "mvp-widget"
+      - "mvp-sidebar"
+      - "mvp-footer"
+ 
+
+  myanmar_national_portal:
+    name: "Myanmar National Portal"
+    domain: "News"
+    feature_image_selector: ".mnp_body .portlet-asset-publisher .asset-full-content .l2news_detail_imgWrapper img"
+    main_text_selector: ".mnp_body #hometab1 .asset-full-content"
+    removal_classes:
+      - ".mnp_body #hometab1 .asset-full-content"
     title_removal_keywords:
-      - "Xinhua"
-      - "ဆင်ဟွာ"
+      - "Myanmar National Portal"
     text_removal_keywords:
-      - "Xinhua Myanmar"
-      - "ဆင်ဟွာ သတင်းဌာန"
+      - "Myanmar National Portal"
+
+  pct_news:
+    name: "PCT News"
+    domain: "News"
+    feature_image_selector: "article .post-thumbnail img"
+    main_text_selector: "article .entry-content p"
+    removal_classes:
+      - "navigation"
+      - "nav"
+      - "header"
+      - "footer"
+      - "sidebar"
+      - "advertisement"
+      - "ads"
+      - "social-share"
+      - "related-posts"
+      - "comments"
+      - "breadcrumb"
+      - "menu"
+      - "author-info"
+      - "tags"
+      - "categories"
+      - "widget"
+      - "wp-block-group"
+    title_removal_keywords:
+      - "– PCT NEWS HOMEPAGE"
+    text_removal_keywords:
+      - "– PCT NEWS HOMEPAGE"
+  
 
 # Add more sites as needed following the same pattern
