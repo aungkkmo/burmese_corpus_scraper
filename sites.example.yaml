@@ -146,7 +146,7 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?start={n}"
     pagination_increment: 9 # Custom increment: 0, 9, 18, 27... (9 items per page)
-    delay: "2,4" # 2 to 4 seconds for JS-heavy site with proxy
+    delay: "1,3" # 2 to 4 seconds for JS-heavy site with proxy
     use_proxy: false
     force_engine: "requests"
 
@@ -217,12 +217,11 @@ sites:
     archive_urls:
       news: "https://www.bnionline.net/mm/news"
     archive_selector: ".region-conditional-stack .card-bottom .card-title a"
-    content_selector: ".video-and-image-condition"
+    content_selector: "div.video-and-image-condition"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
     pagination_increment: 1
     delay: "3,5" # 2 to 4 seconds for JS-heavy site with proxy
-    use_proxy: false
     force_engine: "requests"
     #4050 pages on bni 2211 done
 
@@ -234,33 +233,11 @@ sites:
     archive_urls:
       news: "https://burmese.shannews.org/archives/category/news"
     archive_selector: ".tdb-block-inner .td-module-title a"
-    content_selector: "div.wpb_wrapper"
+    content_selector: ".td-post-content"
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "page/{n}/"
     pagination_increment: 1
     delay: "4,6" # 3 to 6 seconds for respectful scraping
-    use_proxy: false
-    force_engine: "requests"
-
-  xinhua_myanmar:
-    name: "Xinhua Myanmar"
-    description: "Xinhua Myanmar News"
-    slug: "xinhua_myanmar"
-    archive_urls:
-      myanmar: "https://xinhuamyanmar.com/news/myanmar/"
-      china: "https://xinhuamyanmar.com/news/china/"
-      cnmm: "https://xinhuamyanmar.com/mm-cn/"
-      enmm: "https://xinhuamyanmar.com/mm-en/"
-      sino_myanmar: "https://xinhuamyanmar.com/sino-myanmar/"
-      asean: "https://xinhuamyanmar.com/asean/"
-      world: "https://xinhuamyanmar.com/world/"
-      business: "https://xinhuamyanmar.com/business/"
-    archive_selector: "li.mvp-blog-story-wrap.left.relative.infinite-post a"
-    content_selector: "#mvp-post-content"
-    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
-    pagination_param: "page/{n}/"
-    pagination_increment: 1
-    delay: "1,3" # 3 to 6 seconds for respectful scraping
     use_proxy: false
     force_engine: "requests"
 # You can add more sites following the same pattern
