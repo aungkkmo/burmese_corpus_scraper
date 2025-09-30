@@ -241,7 +241,6 @@ sites:
     use_proxy: false
     force_engine: "requests"
 
-
   mdn_gov:
     name: "MDN News"
     description: "MDN News"
@@ -256,6 +255,21 @@ sites:
     delay: "3,5" # 2 to 3 seconds for respectful scraping
     use_proxy: false
     force_engine: "selenium"
+
+  mysportmyanmar:
+    name: "My sport"
+    description: "My sport"
+    slug: "mysportmyanmar"
+    archive_urls:
+      news: "https://www.mysportmyanmar.com/"
+    archive_selector: ".item .row.no-gutters"
+    content_selector: "section#content"
+    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
+    pagination_param: "page/{n}/"
+    pagination_increment: 1
+    delay: "4,7" # 2 to 3 seconds for respectful scraping
+    use_proxy: false
+    force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 
