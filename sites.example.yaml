@@ -255,7 +255,7 @@ sites:
     pagination_increment: 1
     delay: "2,3" # 2 to 3 seconds for respectful scraping
     use_proxy: false
-    force_engine: "requests"
+    force_engine: "selenium"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 
