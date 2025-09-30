@@ -5,7 +5,7 @@
 defaults:
   delay: "0.5,1.5" # Default delay range: 0.5 to 1.5 seconds
   timeout: 30
-  max_pages: 0 # Set to null for unlimited scraping
+  max_pages: null # Set to null for unlimited scraping
   use_proxy: false
   output_format: ndjson
   resume: false
@@ -33,7 +33,7 @@ sites:
     pagination_type: 2 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "a.btn.link-showMore.btn__text.btn-anim"
     delay: "1,2" # 1 to 2 seconds range
-    max_pages: 0
+    max_pages: null
 
   bbc_burmese:
     name: "BBC Burmese"
@@ -253,7 +253,7 @@ sites:
     pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
     pagination_param: "?page={n}"
     pagination_increment: 1
-    delay: "2,3" # 2 to 3 seconds for respectful scraping
+    delay: "3,5" # 2 to 3 seconds for respectful scraping
     use_proxy: false
     force_engine: "selenium"
 # You can add more sites following the same pattern

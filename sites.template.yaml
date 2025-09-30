@@ -6,7 +6,7 @@ defaults:
   # Scraping behavior
   delay: 1.0                    # Delay between requests (seconds)
   timeout: 30                   # Request timeout (seconds)
-  max_pages: 5                  # Maximum pages to scrape per category (null = unlimited)
+  max_pages: null                  # Maximum pages to scrape per category (null = unlimited)
   
   # Engine and proxy settings
   use_proxy: false              # Enable proxy rotation
