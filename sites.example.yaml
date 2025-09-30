@@ -240,6 +240,22 @@ sites:
     delay: "4,6" # 3 to 6 seconds for respectful scraping
     use_proxy: false
     force_engine: "requests"
+
+
+  mdn_gov:
+    name: "MDN News"
+    description: "MDN News"
+    slug: "mdn_gov"
+    archive_urls:
+      news: "https://www.mdn.gov.mm/my/latest-news"
+    archive_selector: ".item .row.no-gutters"
+    content_selector: ".post-block.article-detail"
+    pagination_type: 1 # 0=none, 1=queryparam, 2=loadmore, 3=scroll
+    pagination_param: "?page={n}"
+    pagination_increment: 1
+    delay: "2,3" # 2 to 3 seconds for respectful scraping
+    use_proxy: false
+    force_engine: "requests"
 # You can add more sites following the same pattern
 # Each site inherits from defaults but can override any setting
 
